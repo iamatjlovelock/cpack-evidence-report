@@ -250,6 +250,14 @@ def generate_control_catalog_html(
     conformance_pack = escape_html(compliance_report.get("conformancePackName", "Unknown"))
     generated_at = escape_html(compliance_report.get("reportGeneratedAt", ""))
 
+    # Normalize framework name for matching against mappings
+    # Extract key identifiers like "PCI DSS" and version from the full name
+    raw_framework_name = compliance_report.get("frameworkName", "")
+    # Normalize by removing punctuation and spaces for fuzzy matching
+    current_framework_normalized = raw_framework_name.upper()
+    for char in "-. ()":
+        current_framework_normalized = current_framework_normalized.replace(char, "")
+
     # Collect all identifiers we need
     all_identifiers = set()
 
@@ -265,6 +273,17 @@ def generate_control_catalog_html(
     # From extra rules
     for identifier in extra_rule_identifiers.values():
         all_identifiers.add(identifier)
+
+    # Build control name lookup (item number -> control name)
+    # Control names are like "2.2.1: System components are configured..."
+    control_name_lookup = {}
+    for control_set in compliance_report.get("controlSets", []):
+        for control in control_set.get("controls", []):
+            control_name = control.get("controlName", "")
+            # Extract item number (e.g., "2.2.1" from "2.2.1: Description...")
+            if ":" in control_name:
+                item_num = control_name.split(":")[0].strip()
+                control_name_lookup[item_num] = control_name
 
     # Build navigation
     nav_html = ""
@@ -429,6 +448,39 @@ def generate_control_catalog_html(
             font-size: 12px;
             margin-top: 3px;
             display: block;
+        }}
+        .mapping-item.current-framework {{
+            background: #faf5ff;
+            border: 2px solid #805ad5;
+            box-shadow: 0 2px 4px rgba(128, 90, 213, 0.2);
+        }}
+        .mapping-item.current-framework .mapping-framework {{
+            color: #553c9a;
+        }}
+        .other-frameworks {{
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px 15px;
+            margin-top: 8px;
+        }}
+        .other-frameworks-label {{
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }}
+        .other-frameworks-list {{
+            font-size: 12px;
+            color: #4a5568;
+            line-height: 1.8;
+        }}
+        .other-frameworks-list span {{
+            display: inline-block;
+            background: #edf2f7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin: 2px 4px 2px 0;
         }}
         .control-meta {{
             display: grid;
@@ -596,19 +648,49 @@ def generate_control_catalog_html(
             # Build mappings HTML
             mappings_html = ""
             if mappings:
+                # Separate current framework mappings from others
+                def is_current_framework(m):
+                    fw = m.get("frameworkName", "").upper()
+                    for char in "-. ()":
+                        fw = fw.replace(char, "")
+                    return current_framework_normalized in fw or fw in current_framework_normalized
+
+                current_mappings = [m for m in mappings if is_current_framework(m)]
+                other_mappings = [m for m in mappings if not is_current_framework(m)]
+
                 mappings_html = """
             <div class="control-mappings">
                 <div class="mappings-label">Control Mappings</div>
                 <div class="mappings-list">
 """
-                for mapping in mappings:
+                # Show current framework mappings as individual cards
+                for mapping in current_mappings:
                     framework_name_val = escape_html(mapping.get("frameworkName", ""))
-                    item = escape_html(mapping.get("item", ""))
+                    item_raw = mapping.get("item", "")
+                    item = escape_html(item_raw)
+                    # Look up the full control name
+                    control_name_full = control_name_lookup.get(item_raw, "")
+                    if control_name_full:
+                        control_display = escape_html(control_name_full)
+                    else:
+                        control_display = item
                     if framework_name_val:
                         mappings_html += f"""
-                    <div class="mapping-item">
+                    <div class="mapping-item current-framework">
                         <span class="mapping-framework">{framework_name_val}</span>
-                        <span class="mapping-detail">{item}</span>
+                        <span class="mapping-detail">{control_display}</span>
+                    </div>
+"""
+                # Show other frameworks as a single grouped list
+                if other_mappings:
+                    # Get unique framework names
+                    other_framework_names = sorted(set(m.get("frameworkName", "") for m in other_mappings if m.get("frameworkName")))
+                    if other_framework_names:
+                        frameworks_spans = "".join(f"<span>{escape_html(fw)}</span>" for fw in other_framework_names)
+                        mappings_html += f"""
+                    <div class="other-frameworks">
+                        <div class="other-frameworks-label">Other Frameworks</div>
+                        <div class="other-frameworks-list">{frameworks_spans}</div>
                     </div>
 """
                 mappings_html += """
