@@ -21,6 +21,8 @@ from datetime import datetime, timezone
 
 
 FRAMEWORK_CONTROLS_FOLDER = "framework-controls"
+CONTROL_CATALOG_FOLDER = "control-catalog"
+CONTROL_CATALOG_FILE = "detective-controls.json"
 
 
 def get_python_executable():
@@ -124,6 +126,11 @@ Example usage:
         help="Force re-download of framework controls even if cached version exists"
     )
     parser.add_argument(
+        "--refresh-catalog",
+        action="store_true",
+        help="Force re-download of Control Catalog even if cached version exists"
+    )
+    parser.add_argument(
         "--skip-map",
         action="store_true",
         help="Skip config rule mapping (requires --mapping-file)"
@@ -187,6 +194,15 @@ Example usage:
         os.makedirs(FRAMEWORK_CONTROLS_FOLDER)
         print(f"Created framework controls folder: {FRAMEWORK_CONTROLS_FOLDER}")
 
+    # Create control-catalog folder if needed
+    if not os.path.exists(CONTROL_CATALOG_FOLDER):
+        os.makedirs(CONTROL_CATALOG_FOLDER)
+        print(f"Created control catalog folder: {CONTROL_CATALOG_FOLDER}")
+
+    # Determine Control Catalog cache path
+    cached_catalog_file = os.path.join(CONTROL_CATALOG_FOLDER, CONTROL_CATALOG_FILE)
+    use_cached_catalog = os.path.exists(cached_catalog_file) and not args.refresh_catalog
+
     # Determine framework file path
     # Priority: 1) --framework-file argument, 2) cached file in framework-controls folder
     cached_framework_file = None
@@ -208,9 +224,6 @@ Example usage:
     mapping_file = args.mapping_file or os.path.join(output_folder, f"{output_prefix}_config_mapping.json")
     report_file = args.report_file or os.path.join(output_folder, f"compliance_report_{args.conformance_pack}.json")
     configs_file = os.path.join(output_folder, f"compliance_report_{args.conformance_pack}_configurations.json")
-
-    # Control Catalog JSON file
-    control_catalog_json = os.path.join(output_folder, f"compliance_report_{args.conformance_pack}_control_catalog.json")
 
     # HTML report files
     html_prefix = os.path.join(output_folder, f"compliance_report_{args.conformance_pack}")
@@ -235,7 +248,7 @@ Example usage:
     print(f"  Config Mapping: {mapping_file}")
     print(f"  Compliance Report: {report_file}")
     print(f"  Resource Configs: {configs_file}")
-    print(f"  Control Catalog JSON: {control_catalog_json}")
+    print(f"  Control Catalog: {cached_catalog_file}")
     print(f"  HTML Summary: {html_summary}")
     print(f"  HTML Evidence: {html_evidence}")
     print(f"  HTML Resources: {html_resources}")
@@ -323,13 +336,29 @@ Example usage:
     else:
         print(f"\nSkipping Step 5: HTML report generation (requires resource configurations)")
 
-    # Step 6: Generate control catalog report
+    # Step 6: Export Control Catalog (if needed)
+    if not args.skip_html:
+        if use_cached_catalog:
+            print(f"\nSkipping Step 6: Using cached Control Catalog: {cached_catalog_file}")
+            print(f"  (use --refresh-catalog to force re-download)")
+        else:
+            script_args = ["-o", cached_catalog_file] + region_args
+            if not run_script(
+                "export_control_catalog.py",
+                script_args,
+                "Export Config rules from AWS Control Catalog"
+            ):
+                print("\nWorkflow failed at Step 6: Control Catalog export", file=sys.stderr)
+                return 1
+
+    # Step 7: Generate control catalog report
     if not args.skip_html:
         summary_link = os.path.basename(html_summary)
         script_args = [
             report_file,
             "-o", html_control_catalog,
-            "--catalog-file", control_catalog_json,
+            "--catalog-file", cached_catalog_file,
+            "--skip-fetch",
             "--summary-link", summary_link
         ] + region_args
         if not run_script(
@@ -337,12 +366,12 @@ Example usage:
             script_args,
             "Generate control catalog report for all Config rules"
         ):
-            print("\nWorkflow failed at Step 6: Control catalog report generation", file=sys.stderr)
+            print("\nWorkflow failed at Step 7: Control catalog report generation", file=sys.stderr)
             return 1
     else:
-        print(f"\nSkipping Step 6: Control catalog report generation")
+        print(f"\nSkipping Step 7: Control catalog report generation")
 
-    # Step 7: Generate gap report
+    # Step 8: Generate gap report
     if not args.skip_html:
         summary_link = os.path.basename(html_summary)
         control_catalog_link = os.path.basename(html_control_catalog)
@@ -352,12 +381,12 @@ Example usage:
             script_args,
             "Generate gap analysis report for unmapped rules"
         ):
-            print("\nWorkflow failed at Step 7: Gap report generation", file=sys.stderr)
+            print("\nWorkflow failed at Step 8: Gap report generation", file=sys.stderr)
             return 1
     else:
-        print(f"\nSkipping Step 7: Gap report generation")
+        print(f"\nSkipping Step 8: Gap report generation")
 
-    # Step 8: Generate extra rules report
+    # Step 9: Generate extra rules report
     if not args.skip_html:
         summary_link = os.path.basename(html_summary)
         control_catalog_link = os.path.basename(html_control_catalog)
@@ -367,10 +396,10 @@ Example usage:
             script_args,
             "Generate extra rules report for conformance pack rules not in framework"
         ):
-            print("\nWorkflow failed at Step 8: Extra rules report generation", file=sys.stderr)
+            print("\nWorkflow failed at Step 9: Extra rules report generation", file=sys.stderr)
             return 1
     else:
-        print(f"\nSkipping Step 8: Extra rules report generation")
+        print(f"\nSkipping Step 9: Extra rules report generation")
 
     # Final summary
     print("\n" + "=" * 80)
@@ -396,7 +425,10 @@ Example usage:
         generated_files.append(("HTML Evidence", html_evidence))
         generated_files.append(("HTML Resources", html_resources))
     if not args.skip_html:
-        generated_files.append(("Control Catalog JSON", control_catalog_json))
+        if use_cached_catalog:
+            generated_files.append(("Control Catalog (cached)", cached_catalog_file))
+        else:
+            generated_files.append(("Control Catalog", cached_catalog_file))
         generated_files.append(("HTML Control Catalog", html_control_catalog))
         generated_files.append(("HTML Gap Report", html_gaps))
         generated_files.append(("HTML Extra Rules", html_extra_rules))

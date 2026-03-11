@@ -858,8 +858,17 @@ def main():
             print(f"Loading Control Catalog data: {catalog_file}")
             catalog_data = load_json_file(catalog_file)
             catalog_controls = catalog_data.get("controls", {})
-            extra_rule_identifiers = catalog_data.get("extraRuleIdentifiers", {})
             print(f"  Loaded {len(catalog_controls)} controls from catalog file")
+
+            # Get extra rule identifiers - may need to compute if not in cached file
+            extra_rule_identifiers = catalog_data.get("extraRuleIdentifiers", {})
+            if not extra_rule_identifiers:
+                # Global catalog doesn't have extraRuleIdentifiers, compute from compliance report
+                extra_rule_names = compliance_report.get("conformancePackRulesNotInFramework", [])
+                if extra_rule_names:
+                    print(f"  Looking up identifiers for {len(extra_rule_names)} extra rules...")
+                    extra_rule_identifiers = get_extra_rule_identifiers(extra_rule_names, args.region)
+                    print(f"  Found identifiers for {len(extra_rule_identifiers)} extra rules")
         else:
             # Get all rule identifiers from framework
             framework_identifiers = get_all_rule_identifiers(compliance_report)
