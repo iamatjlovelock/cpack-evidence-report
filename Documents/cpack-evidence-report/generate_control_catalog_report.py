@@ -561,6 +561,9 @@ def generate_control_catalog_html(
             font-size: 13px;
             font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
         }}
+        .toc-list a.not-in-catalog {{
+            color: #dd6b20;
+        }}
         @media (max-width: 900px) {{
             .toc-list {{
                 column-count: 2;
@@ -631,7 +634,10 @@ def generate_control_catalog_html(
     # Add table of contents
     for identifier in sorted(all_identifiers):
         anchor = make_anchor_id(identifier)
-        html_content += f'            <a href="#{anchor}">{escape_html(identifier)}</a>\n'
+        if identifier in catalog_controls:
+            html_content += f'            <a href="#{anchor}">{escape_html(identifier)}</a>\n'
+        else:
+            html_content += f'            <a href="#{anchor}" class="not-in-catalog">{escape_html(identifier)}</a>\n'
 
     html_content += """
         </div>
