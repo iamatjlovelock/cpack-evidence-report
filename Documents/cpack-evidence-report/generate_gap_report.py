@@ -72,7 +72,8 @@ def generate_gap_report_html(
     compliance_report: dict,
     unmapped_sources: list,
     summary_link: str = None,
-    control_catalog_link: str = None
+    control_catalog_link: str = None,
+    catalog_controls: dict = None
 ) -> str:
     """
     Generate HTML gap report.
@@ -82,6 +83,7 @@ def generate_gap_report_html(
         unmapped_sources: List of unmapped evidence sources
         summary_link: Link back to summary page (optional)
         control_catalog_link: Link to control catalog report (optional)
+        catalog_controls: Dict of control details from Control Catalog (optional)
 
     Returns:
         HTML string
@@ -315,7 +317,12 @@ def generate_gap_report_html(
         sources = by_keyword[keyword]
         first_source = sources[0]
         source_name = escape_html(first_source.get("sourceName", ""))
-        description = escape_html(first_source.get("sourceDescription", "") or "No description available")
+
+        # Get description from Control Catalog if available, otherwise use framework source
+        if catalog_controls and keyword in catalog_controls:
+            description = escape_html(catalog_controls[keyword].get("description", "") or "No description available")
+        else:
+            description = escape_html(first_source.get("sourceDescription", "") or "No description available")
 
         # Build link to control catalog
         keyword_anchor = make_anchor_id(keyword)
@@ -384,6 +391,11 @@ def main():
         default=None
     )
     parser.add_argument(
+        "--catalog-file",
+        help="Path to cached Control Catalog JSON file for rule descriptions",
+        default=None
+    )
+    parser.add_argument(
         "--stdout",
         action="store_true",
         help="Print HTML to stdout instead of file"
@@ -395,6 +407,14 @@ def main():
         # Load compliance report
         print(f"Loading compliance report: {args.report_file}")
         compliance_report = load_json_file(args.report_file)
+
+        # Load Control Catalog if provided
+        catalog_controls = None
+        if args.catalog_file:
+            print(f"Loading Control Catalog: {args.catalog_file}")
+            catalog_data = load_json_file(args.catalog_file)
+            catalog_controls = catalog_data.get("controls", {})
+            print(f"  Loaded {len(catalog_controls)} controls from catalog")
 
         # Extract unmapped sources
         print("Analyzing unmapped evidence sources...")
@@ -413,7 +433,8 @@ def main():
             compliance_report,
             unmapped_sources,
             args.summary_link,
-            args.control_catalog_link
+            args.control_catalog_link,
+            catalog_controls
         )
 
         if args.stdout:

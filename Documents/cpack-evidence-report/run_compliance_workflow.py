@@ -381,7 +381,7 @@ Example usage:
     if not args.skip_html:
         summary_link = os.path.basename(html_summary)
         control_catalog_link = os.path.basename(html_control_catalog)
-        script_args = [report_file, "-o", html_gaps, "--summary-link", summary_link, "--control-catalog-link", control_catalog_link]
+        script_args = [report_file, "-o", html_gaps, "--summary-link", summary_link, "--control-catalog-link", control_catalog_link, "--catalog-file", cached_catalog_file]
         if not run_script(
             "generate_gap_report.py",
             script_args,
