@@ -67,6 +67,40 @@ def get_all_rule_identifiers(compliance_report: dict) -> set:
     return identifiers
 
 
+def get_control_mappings(control_arn: str, client) -> list:
+    """
+    Fetch control mappings for a specific control using ListControlMappings API.
+
+    Args:
+        control_arn: The ARN of the control
+        client: boto3 controlcatalog client
+
+    Returns:
+        List of mapping details (frameworks/standards this control maps to)
+    """
+    mappings = []
+
+    try:
+        paginator = client.get_paginator("list_control_mappings")
+
+        for page in paginator.paginate(ControlArn=control_arn):
+            for mapping in page.get("ControlMappings", []):
+                mapping_info = {
+                    "frameworkArn": mapping.get("FrameworkArn", ""),
+                    "frameworkName": mapping.get("FrameworkName", ""),
+                    "controlSetName": mapping.get("ControlSetName", ""),
+                    "controlName": mapping.get("ControlName", ""),
+                    "commonControlArn": mapping.get("CommonControlArn", "")
+                }
+                mappings.append(mapping_info)
+
+    except Exception:
+        # Silently handle errors for individual control mappings
+        pass
+
+    return mappings
+
+
 def get_control_catalog_details(rule_identifiers: set, region: str = None) -> dict:
     """
     Fetch detailed control information from AWS Control Catalog API.
@@ -130,6 +164,21 @@ def get_control_catalog_details(rule_identifiers: set, region: str = None) -> di
                     }
 
         print(f"  Found {len(controls)} Config rule controls in catalog")
+
+        # Fetch mappings for controls that match our identifiers
+        matching_controls = {k: v for k, v in controls.items() if k in rule_identifiers}
+        if matching_controls:
+            print(f"  Fetching mappings for {len(matching_controls)} relevant controls...")
+            fetched = 0
+            for identifier, control_data in matching_controls.items():
+                arn = control_data.get("arn", "")
+                if arn:
+                    mappings = get_control_mappings(arn, client)
+                    controls[identifier]["mappings"] = mappings
+                    fetched += 1
+                    if fetched % 50 == 0:
+                        print(f"    Processed {fetched}/{len(matching_controls)} controls...")
+            print(f"  Completed fetching mappings")
 
     except Exception as e:
         print(f"  Warning: Could not fetch from Controls Catalog: {e}")
@@ -335,6 +384,48 @@ def generate_control_catalog_html(
             font-size: 15px;
             line-height: 1.7;
         }}
+        .control-arn {{
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 11px;
+            color: #718096;
+            margin: 10px 0 15px 0;
+            word-break: break-all;
+        }}
+        .control-mappings {{
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e2e8f0;
+        }}
+        .mappings-label {{
+            color: #718096;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }}
+        .mappings-list {{
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }}
+        .mapping-item {{
+            background: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid #e9d8fd;
+        }}
+        .mapping-framework {{
+            font-weight: 600;
+            color: #553c9a;
+            display: block;
+            font-size: 13px;
+        }}
+        .mapping-detail {{
+            color: #718096;
+            font-size: 12px;
+            margin-top: 3px;
+            display: block;
+        }}
         .control-meta {{
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -496,12 +587,38 @@ def generate_control_catalog_html(
             governed_resources = control.get("governedResources", [])
             governed_resources_html = ", ".join([escape_html(r) for r in governed_resources]) if governed_resources else "N/A"
             arn = escape_html(control.get("arn", ""))
+            mappings = control.get("mappings", [])
+
+            # Build mappings HTML
+            mappings_html = ""
+            if mappings:
+                mappings_html = """
+            <div class="control-mappings">
+                <div class="mappings-label">Control Mappings</div>
+                <div class="mappings-list">
+"""
+                for mapping in mappings:
+                    framework_name = escape_html(mapping.get("frameworkName", ""))
+                    control_set = escape_html(mapping.get("controlSetName", ""))
+                    control_name = escape_html(mapping.get("controlName", ""))
+                    if framework_name:
+                        mappings_html += f"""
+                    <div class="mapping-item">
+                        <span class="mapping-framework">{framework_name}</span>
+                        <span class="mapping-detail">{control_set} &raquo; {control_name}</span>
+                    </div>
+"""
+                mappings_html += """
+                </div>
+            </div>
+"""
 
             html_content += f"""
         <div class="control-entry" id="{anchor}">
             <h3>{name}</h3>
             <div class="control-identifier">{escape_html(identifier)}</div>
             <div class="control-description">{description}</div>
+            <div class="control-arn">ARN: {arn}</div>
             <div class="control-meta">
                 <div class="meta-item">
                     <div class="label">Severity</div>
@@ -519,11 +636,8 @@ def generate_control_catalog_html(
                     <div class="label">Governed Resources</div>
                     <div class="value" style="font-size: 12px;">{governed_resources_html}</div>
                 </div>
-                <div class="meta-item">
-                    <div class="label">Control ARN</div>
-                    <div class="value" style="font-size: 11px; word-break: break-all;">{arn}</div>
-                </div>
             </div>
+            {mappings_html}
         </div>
 """
         else:
