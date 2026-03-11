@@ -528,6 +528,23 @@ def generate_control_catalog_html(
             color: #44337a;
             font-size: 14px;
         }}
+        .warning-box {{
+            background: #fffaf0;
+            border: 1px solid #ed8936;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }}
+        .warning-box h3 {{
+            margin: 0 0 10px 0;
+            color: #c05621;
+            font-size: 16px;
+        }}
+        .warning-box p {{
+            margin: 0;
+            color: #744210;
+            font-size: 14px;
+        }}
         .toc {{
             background: white;
             border-radius: 10px;
@@ -624,7 +641,37 @@ def generate_control_catalog_html(
     html_content += """
         </div>
     </div>
+"""
 
+    # Check if any controls have current framework mappings
+    def check_is_current_framework(m):
+        fw = m.get("frameworkName", "").upper()
+        for char in "-. ()":
+            fw = fw.replace(char, "")
+        return current_framework_normalized in fw or fw in current_framework_normalized
+
+    has_current_framework_mappings = False
+    for identifier in all_identifiers:
+        control = catalog_controls.get(identifier, {})
+        mappings = control.get("mappings", [])
+        if any(check_is_current_framework(m) for m in mappings):
+            has_current_framework_mappings = True
+            break
+
+    # Show warning if no current framework mappings found
+    if not has_current_framework_mappings:
+        html_content += f"""
+    <div class="warning-box">
+        <h3>Framework Not in Control Catalog Mappings</h3>
+        <p>
+            The AWS Control Catalog does not include control mappings for the <strong>{framework_name}</strong> framework.
+            The Control Catalog currently provides framework mappings for select compliance standards such as PCI-DSS, NIST, ISO 27001, and FedRAMP.
+            While detailed rule information is shown below, specific control mappings for this framework are not available from the Control Catalog API.
+        </p>
+    </div>
+"""
+
+    html_content += """
     <div class="section">
         <h2>Config Rule Details</h2>
 """

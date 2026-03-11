@@ -80,6 +80,46 @@ def get_rule_details(rule_names: list, region: str = None) -> dict:
     return rule_details
 
 
+def get_control_catalog_descriptions(source_identifiers: set, region: str = None) -> dict:
+    """
+    Get descriptions from AWS Control Catalog for the given source identifiers.
+
+    Args:
+        source_identifiers: Set of Config rule source identifiers
+        region: AWS region (optional)
+
+    Returns:
+        Dict mapping source identifier to description from Control Catalog
+    """
+    if not source_identifiers:
+        return {}
+
+    client_kwargs = {}
+    if region:
+        client_kwargs["region_name"] = region
+
+    client = boto3.client("controlcatalog", **client_kwargs)
+    descriptions = {}
+
+    try:
+        paginator = client.get_paginator("list_controls")
+
+        for page in paginator.paginate(MaxResults=100):
+            for control in page.get("Controls", []):
+                impl = control.get("Implementation", {})
+                impl_type = impl.get("Type", "")
+                identifier = impl.get("Identifier", "")
+
+                # Only include Config rules that match our identifiers
+                if impl_type == "AWS::Config::ConfigRule" and identifier in source_identifiers:
+                    descriptions[identifier] = control.get("Description", "")
+
+    except Exception as e:
+        print(f"  Warning: Could not fetch from Control Catalog: {e}", file=sys.stderr)
+
+    return descriptions
+
+
 def generate_extra_rules_report_html(
     compliance_report: dict,
     rule_details: dict,
@@ -386,6 +426,19 @@ def main():
         print("Fetching rule details from AWS Config...")
         rule_details = get_rule_details(extra_rules, args.region)
         print(f"  Retrieved details for {len(rule_details)} rules")
+
+        # Get Control Catalog descriptions for better rule descriptions
+        source_identifiers = set(d.get("sourceIdentifier") for d in rule_details.values() if d.get("sourceIdentifier"))
+        if source_identifiers:
+            print("Fetching descriptions from Control Catalog...")
+            catalog_descriptions = get_control_catalog_descriptions(source_identifiers, args.region)
+            print(f"  Retrieved {len(catalog_descriptions)} descriptions from Control Catalog")
+
+            # Merge Control Catalog descriptions into rule details
+            for rule_name, details in rule_details.items():
+                source_id = details.get("sourceIdentifier", "")
+                if source_id and source_id in catalog_descriptions:
+                    details["description"] = catalog_descriptions[source_id]
 
         # Generate HTML
         html_content = generate_extra_rules_report_html(
