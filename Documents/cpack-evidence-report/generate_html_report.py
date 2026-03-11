@@ -494,7 +494,7 @@ def generate_summary_page(
             <div class="value">{summary.get('totalControlSets', 0)}</div>
         </div>
         <div class="card">
-            <h3>Controls</h3>
+            <h3>Framework Controls</h3>
             <div class="value">{summary.get('totalControls', 0)}</div>
         </div>
         <div class="card">
