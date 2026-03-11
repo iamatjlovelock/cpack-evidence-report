@@ -8,7 +8,7 @@ Create a Python script called `extract_conformance_pack_rules.py` that extracts 
 Parse conformance pack YAML templates and extract the Config rules defined in each pack. This creates a quick reference for which rules are included in each conformance pack.
 
 ### Input
-- YAML files from `conformance-pack-yamls/` folder (downloaded by `download_conformance_pack_templates.py`)
+- YAML files from `conformance-pack-yamls/` folder (downloaded by `utility-scripts/download_conformance_pack_templates.py`)
 
 ### Output
 - CSV files in `conformance-pack-rules/` folder, one per YAML file

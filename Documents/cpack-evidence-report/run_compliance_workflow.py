@@ -96,7 +96,7 @@ Example usage:
 
     parser.add_argument(
         "--framework-id",
-        help="AWS Audit Manager framework ID (required unless --skip-extract). Run list_audit_manager_frameworks.py to generate a list of frameworks with their IDs"
+        help="AWS Audit Manager framework ID (required unless --skip-extract). Run utility-scripts/list_audit_manager_frameworks.py to generate a list of frameworks with their IDs"
     )
     parser.add_argument(
         "--conformance-pack",

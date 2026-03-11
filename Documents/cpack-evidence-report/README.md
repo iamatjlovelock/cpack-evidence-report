@@ -205,25 +205,39 @@ python generate_control_catalog_report.py <compliance_report.json> -o control_ca
 
 ## Utility Scripts
 
+Located in `utility-scripts/` folder.
+
 ### download_conformance_pack_templates.py
 
 Download conformance pack YAML templates from the AWS Config Rules GitHub repository.
 
 ```bash
 # Download all templates
-python download_conformance_pack_templates.py
+python utility-scripts/download_conformance_pack_templates.py
 
 # List available templates without downloading
-python download_conformance_pack_templates.py --list-only
+python utility-scripts/download_conformance_pack_templates.py --list-only
 
 # Download to custom folder
-python download_conformance_pack_templates.py -o my-templates
+python utility-scripts/download_conformance_pack_templates.py -o my-templates
 ```
 
 **Key Features:**
 - Downloads from https://github.com/awslabs/aws-config-rules/tree/master/aws-config-conformance-packs
 - Parallel downloads for efficiency (configurable with `-j`)
 - Outputs to `conformance-pack-yamls/` by default
+
+### list_audit_manager_frameworks.py
+
+List all available AWS Audit Manager frameworks and their IDs.
+
+```bash
+python utility-scripts/list_audit_manager_frameworks.py
+```
+
+**Key Features:**
+- Lists both AWS standard frameworks and custom frameworks
+- Shows framework IDs needed for the workflow
 
 ### extract_conformance_pack_rules.py
 
@@ -310,10 +324,10 @@ config = configurations["configurations"][resource_key]
 
 ### List Available Frameworks
 
-Run `list_audit_manager_frameworks.py` to generate a list of all frameworks supported by AWS Audit Manager, including their framework IDs:
+Run `utility-scripts/list_audit_manager_frameworks.py` to generate a list of all frameworks supported by AWS Audit Manager, including their framework IDs:
 
 ```bash
-python list_audit_manager_frameworks.py
+python utility-scripts/list_audit_manager_frameworks.py
 ```
 
 This outputs a list of Audit Manager frameworks with their IDs. Use the framework ID with the `--framework-id` parameter in the workflow.
