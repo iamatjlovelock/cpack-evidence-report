@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 FRAMEWORK_CONTROLS_FOLDER = "framework-controls"
 CONTROL_CATALOG_FOLDER = "control-catalog"
 CONTROL_CATALOG_FILE = "detective-controls.json"
+COMPLIANCE_DASHBOARDS_FOLDER = "compliance-dashboards"
 
 
 def get_python_executable():
@@ -183,8 +184,13 @@ Example usage:
     # Set output prefix
     output_prefix = args.output_prefix or args.conformance_pack
 
-    # Create output folder
-    output_folder = output_prefix
+    # Create compliance-dashboards folder if needed
+    if not os.path.exists(COMPLIANCE_DASHBOARDS_FOLDER):
+        os.makedirs(COMPLIANCE_DASHBOARDS_FOLDER)
+        print(f"Created compliance dashboards folder: {COMPLIANCE_DASHBOARDS_FOLDER}")
+
+    # Create output folder inside compliance-dashboards
+    output_folder = os.path.join(COMPLIANCE_DASHBOARDS_FOLDER, output_prefix)
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
         print(f"Created output folder: {output_folder}")

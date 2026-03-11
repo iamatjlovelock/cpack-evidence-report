@@ -39,16 +39,17 @@ framework-controls/
 control-catalog/
 └── detective-controls.json
 
-{output_prefix}/
-├── {prefix}_config_mapping.json
-├── compliance_report_{pack}.json
-├── compliance_report_{pack}_configurations.json
-├── compliance_report_{pack}_summary.html
-├── compliance_report_{pack}_evidence.html
-├── compliance_report_{pack}_resources.html
-├── compliance_report_{pack}_control_catalog.html
-├── compliance_report_{pack}_gaps.html
-└── compliance_report_{pack}_extra_rules.html
+compliance-dashboards/
+└── {output_prefix}/
+    ├── {prefix}_config_mapping.json
+    ├── compliance_report_{pack}.json
+    ├── compliance_report_{pack}_configurations.json
+    ├── compliance_report_{pack}_summary.html
+    ├── compliance_report_{pack}_evidence.html
+    ├── compliance_report_{pack}_resources.html
+    ├── compliance_report_{pack}_control_catalog.html
+    ├── compliance_report_{pack}_gaps.html
+    └── compliance_report_{pack}_extra_rules.html
 ```
 
 ### CLI Arguments

@@ -29,30 +29,33 @@ python run_compliance_workflow.py \
   --output-prefix "PCI_DSS_v4"
 ```
 
-This creates output in two locations:
+This creates output in multiple locations:
 
-**Framework Controls (cached for reuse):**
+**Cached Data (reused across runs):**
 ```
 framework-controls/
 └── 1f50f59a-fc3c-4b99-be05-6a79cf3f9538_controls.json  # Cached by framework ID
+
+control-catalog/
+└── detective-controls.json  # All Config rules from Control Catalog
 ```
 
 **Report Output:**
 ```
-PCI_DSS_v4/
-├── PCI_DSS_v4_config_mapping.json        # Config rule mappings with descriptions
-├── compliance_report_PCI-DSS-CPAC.json   # Full compliance report
-├── compliance_report_PCI-DSS-CPAC_configurations.json  # Resource configurations
-├── compliance_report_PCI-DSS-CPAC_summary.html    # HTML summary page
-├── compliance_report_PCI-DSS-CPAC_evidence.html   # HTML evidence sources
-├── compliance_report_PCI-DSS-CPAC_resources.html  # HTML resource configs
-├── compliance_report_PCI-DSS-CPAC_gaps.html       # HTML gap analysis report
-├── compliance_report_PCI-DSS-CPAC_extra_rules.html # HTML extra rules report
-├── compliance_report_PCI-DSS-CPAC_control_catalog.html # HTML control catalog
-└── compliance_report_PCI-DSS-CPAC_control_catalog.json # Control catalog data
+compliance-dashboards/
+└── PCI_DSS_v4/
+    ├── PCI_DSS_v4_config_mapping.json        # Config rule mappings with descriptions
+    ├── compliance_report_PCI-DSS-CPAC.json   # Full compliance report
+    ├── compliance_report_PCI-DSS-CPAC_configurations.json  # Resource configurations
+    ├── compliance_report_PCI-DSS-CPAC_summary.html    # HTML summary page
+    ├── compliance_report_PCI-DSS-CPAC_evidence.html   # HTML evidence sources
+    ├── compliance_report_PCI-DSS-CPAC_resources.html  # HTML resource configs
+    ├── compliance_report_PCI-DSS-CPAC_gaps.html       # HTML gap analysis report
+    ├── compliance_report_PCI-DSS-CPAC_extra_rules.html # HTML extra rules report
+    └── compliance_report_PCI-DSS-CPAC_control_catalog.html # HTML control catalog
 ```
 
-Framework controls are cached in the `framework-controls/` folder by framework ID. Subsequent workflow runs automatically reuse the cached file, avoiding redundant API calls.
+Framework controls and Control Catalog data are cached for reuse. Subsequent workflow runs automatically use cached files, avoiding redundant API calls.
 
 ### Generate HTML Reports
 
