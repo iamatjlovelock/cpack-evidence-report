@@ -27,6 +27,17 @@ def escape_html(text) -> str:
     return html.escape(str(text))
 
 
+def make_anchor_id(text: str) -> str:
+    """Create a valid HTML anchor ID from text."""
+    result = ""
+    for c in text:
+        if c.isalnum():
+            result += c
+        else:
+            result += "_"
+    return result
+
+
 def get_rule_details(rule_names: list, region: str = None) -> dict:
     """
     Get details for Config rules from the AWS Config API.
@@ -72,7 +83,8 @@ def get_rule_details(rule_names: list, region: str = None) -> dict:
 def generate_extra_rules_report_html(
     compliance_report: dict,
     rule_details: dict,
-    summary_link: str = None
+    summary_link: str = None,
+    control_catalog_link: str = None
 ) -> str:
     """
     Generate HTML report for extra rules in conformance pack.
@@ -81,6 +93,7 @@ def generate_extra_rules_report_html(
         compliance_report: The compliance report data
         rule_details: Dict of rule details from AWS Config API
         summary_link: Link back to summary page (optional)
+        control_catalog_link: Link to control catalog report (optional)
 
     Returns:
         HTML string
@@ -289,13 +302,21 @@ def generate_extra_rules_report_html(
     for rule_name in sorted(extra_rules):
         details = rule_details.get(rule_name, {})
         description = escape_html(details.get("description", "") or "No description available")
-        source_identifier = escape_html(details.get("sourceIdentifier", ""))
+        source_identifier_raw = details.get("sourceIdentifier", "")
+        source_identifier = escape_html(source_identifier_raw)
         source_owner = escape_html(details.get("sourceOwner", ""))
+
+        # Build link to control catalog
+        if control_catalog_link and source_identifier_raw:
+            identifier_anchor = make_anchor_id(source_identifier_raw)
+            identifier_display = f'<a href="{control_catalog_link}#{identifier_anchor}">{source_identifier}</a>'
+        else:
+            identifier_display = source_identifier
 
         html_content += f"""
         <div class="rule-entry">
             <h3>{escape_html(rule_name)}</h3>
-            <div><span class="rule-identifier">{source_identifier}</span></div>
+            <div><span class="rule-identifier">{identifier_display}</span></div>
             <div class="rule-description">{description}</div>
             <div class="rule-meta">
                 <span><strong>Owner:</strong> {source_owner}</span>
@@ -340,6 +361,11 @@ def main():
         default=None
     )
     parser.add_argument(
+        "--control-catalog-link",
+        help="Link to control catalog report",
+        default=None
+    )
+    parser.add_argument(
         "--stdout",
         action="store_true",
         help="Print HTML to stdout instead of file"
@@ -365,7 +391,8 @@ def main():
         html_content = generate_extra_rules_report_html(
             compliance_report,
             rule_details,
-            args.summary_link
+            args.summary_link,
+            args.control_catalog_link
         )
 
         if args.stdout:

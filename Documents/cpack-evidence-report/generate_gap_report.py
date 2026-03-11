@@ -25,6 +25,17 @@ def escape_html(text) -> str:
     return html.escape(str(text))
 
 
+def make_anchor_id(text: str) -> str:
+    """Create a valid HTML anchor ID from text."""
+    result = ""
+    for c in text:
+        if c.isalnum():
+            result += c
+        else:
+            result += "_"
+    return result
+
+
 def extract_unmapped_sources(compliance_report: dict) -> list:
     """
     Extract evidence sources that are not mapped to the conformance pack.
@@ -60,7 +71,8 @@ def extract_unmapped_sources(compliance_report: dict) -> list:
 def generate_gap_report_html(
     compliance_report: dict,
     unmapped_sources: list,
-    summary_link: str = None
+    summary_link: str = None,
+    control_catalog_link: str = None
 ) -> str:
     """
     Generate HTML gap report.
@@ -69,6 +81,7 @@ def generate_gap_report_html(
         compliance_report: The compliance report data
         unmapped_sources: List of unmapped evidence sources
         summary_link: Link back to summary page (optional)
+        control_catalog_link: Link to control catalog report (optional)
 
     Returns:
         HTML string
@@ -304,10 +317,16 @@ def generate_gap_report_html(
         source_name = escape_html(first_source.get("sourceName", ""))
         description = escape_html(first_source.get("sourceDescription", "") or "No description available")
 
+        # Build link to control catalog
+        keyword_anchor = make_anchor_id(keyword)
+        keyword_display = escape_html(keyword)
+        if control_catalog_link:
+            keyword_display = f'<a href="{control_catalog_link}#{keyword_anchor}">{keyword_display}</a>'
+
         html_content += f"""
         <div class="rule-entry">
             <h3>{source_name}</h3>
-            <div><span class="rule-keyword">{escape_html(keyword)}</span></div>
+            <div><span class="rule-keyword">{keyword_display}</span></div>
             <div class="rule-description">{description}</div>
             <div class="controls-list">
                 <h4>Referenced by {len(sources)} control(s):</h4>
@@ -360,6 +379,11 @@ def main():
         default=None
     )
     parser.add_argument(
+        "--control-catalog-link",
+        help="Link to control catalog report",
+        default=None
+    )
+    parser.add_argument(
         "--stdout",
         action="store_true",
         help="Print HTML to stdout instead of file"
@@ -388,7 +412,8 @@ def main():
         html_content = generate_gap_report_html(
             compliance_report,
             unmapped_sources,
-            args.summary_link
+            args.summary_link,
+            args.control_catalog_link
         )
 
         if args.stdout:

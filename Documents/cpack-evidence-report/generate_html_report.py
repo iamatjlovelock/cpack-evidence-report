@@ -656,7 +656,8 @@ def generate_summary_page(
 def generate_evidence_page(
     compliance_report: dict,
     evidence_sources: dict,
-    prefix: str
+    prefix: str,
+    control_catalog_link: str = None
 ) -> str:
     """Generate the evidence sources HTML page."""
 
@@ -753,13 +754,18 @@ def generate_evidence_page(
         if source_description:
             description_html = f'<p style="color: #4a5568; margin: 10px 0 0 0; font-size: 14px;">{source_description}</p>'
 
+        # Build catalog link for keyword
+        keyword_raw = source.get("keywordValue", "")
+        keyword_anchor = make_anchor_id(keyword_raw)
+        keyword_link = f'<a href="{control_catalog_link}#{keyword_anchor}">{keyword}</a>' if control_catalog_link and keyword_raw else keyword
+
         html_parts.append(f"""
         <div class="evidence-entry" id="{rule_anchor}">
             <div class="evidence-header">
                 <div class="evidence-title">{source_name}</div>
                 {description_html}
                 <div class="evidence-rule" style="margin-top: 10px;">Rule: {escape_html(rule_name)}</div>
-                <div class="evidence-rule">Keyword: {keyword}</div>
+                <div class="evidence-rule">Keyword: {keyword_link}</div>
             </div>
 
             <div class="evidence-stats">
@@ -1098,6 +1104,7 @@ def main():
         link_prefix = os.path.basename(output_prefix)
         gap_report_link = f"{link_prefix}_gaps.html"
         extra_rules_report_link = f"{link_prefix}_extra_rules.html"
+        control_catalog_link = f"{link_prefix}_control_catalog.html"
 
         # Summary page
         summary_html = generate_summary_page(compliance_report, evidence_sources, link_prefix, gap_report_link, extra_rules_report_link)
@@ -1107,7 +1114,7 @@ def main():
         print(f"  Summary page: {summary_file}")
 
         # Evidence sources page
-        evidence_html = generate_evidence_page(compliance_report, evidence_sources, link_prefix)
+        evidence_html = generate_evidence_page(compliance_report, evidence_sources, link_prefix, control_catalog_link)
         evidence_file = f"{output_prefix}_evidence.html"
         with open(evidence_file, "w", encoding="utf-8") as f:
             f.write(evidence_html)

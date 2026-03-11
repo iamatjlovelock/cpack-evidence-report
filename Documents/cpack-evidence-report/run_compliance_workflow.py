@@ -180,6 +180,7 @@ Example usage:
     html_resources = f"{html_prefix}_resources.html"
     html_gaps = f"{html_prefix}_gaps.html"
     html_extra_rules = f"{html_prefix}_extra_rules.html"
+    html_control_catalog = f"{html_prefix}_control_catalog.html"
 
     print("\n" + "=" * 80)
     print("AWS COMPLIANCE REPORTING WORKFLOW")
@@ -200,6 +201,7 @@ Example usage:
     print(f"  HTML Resources: {html_resources}")
     print(f"  HTML Gap Report: {html_gaps}")
     print(f"  HTML Extra Rules: {html_extra_rules}")
+    print(f"  HTML Control Catalog: {html_control_catalog}")
 
     # Build region args
     region_args = ["-r", args.region] if args.region else []
@@ -278,34 +280,49 @@ Example usage:
     else:
         print(f"\nSkipping Step 5: HTML report generation (requires resource configurations)")
 
-    # Step 6: Generate gap report
+    # Step 6: Generate control catalog report
     if not args.skip_html:
-        # Link back to summary uses basename only
         summary_link = os.path.basename(html_summary)
-        script_args = [report_file, "-o", html_gaps, "--summary-link", summary_link]
+        script_args = [report_file, "-o", html_control_catalog, "--summary-link", summary_link] + region_args
+        if not run_script(
+            "generate_control_catalog_report.py",
+            script_args,
+            "Generate control catalog report for all Config rules"
+        ):
+            print("\nWorkflow failed at Step 6: Control catalog report generation", file=sys.stderr)
+            return 1
+    else:
+        print(f"\nSkipping Step 6: Control catalog report generation")
+
+    # Step 7: Generate gap report
+    if not args.skip_html:
+        summary_link = os.path.basename(html_summary)
+        control_catalog_link = os.path.basename(html_control_catalog)
+        script_args = [report_file, "-o", html_gaps, "--summary-link", summary_link, "--control-catalog-link", control_catalog_link]
         if not run_script(
             "generate_gap_report.py",
             script_args,
             "Generate gap analysis report for unmapped rules"
         ):
-            print("\nWorkflow failed at Step 6: Gap report generation", file=sys.stderr)
+            print("\nWorkflow failed at Step 7: Gap report generation", file=sys.stderr)
             return 1
     else:
-        print(f"\nSkipping Step 6: Gap report generation")
+        print(f"\nSkipping Step 7: Gap report generation")
 
-    # Step 7: Generate extra rules report
+    # Step 8: Generate extra rules report
     if not args.skip_html:
         summary_link = os.path.basename(html_summary)
-        script_args = [report_file, "-o", html_extra_rules, "--summary-link", summary_link] + region_args
+        control_catalog_link = os.path.basename(html_control_catalog)
+        script_args = [report_file, "-o", html_extra_rules, "--summary-link", summary_link, "--control-catalog-link", control_catalog_link] + region_args
         if not run_script(
             "generate_extra_rules_report.py",
             script_args,
             "Generate extra rules report for conformance pack rules not in framework"
         ):
-            print("\nWorkflow failed at Step 7: Extra rules report generation", file=sys.stderr)
+            print("\nWorkflow failed at Step 8: Extra rules report generation", file=sys.stderr)
             return 1
     else:
-        print(f"\nSkipping Step 7: Extra rules report generation")
+        print(f"\nSkipping Step 8: Extra rules report generation")
 
     # Final summary
     print("\n" + "=" * 80)
@@ -329,6 +346,7 @@ Example usage:
         generated_files.append(("HTML Evidence", html_evidence))
         generated_files.append(("HTML Resources", html_resources))
     if not args.skip_html:
+        generated_files.append(("HTML Control Catalog", html_control_catalog))
         generated_files.append(("HTML Gap Report", html_gaps))
         generated_files.append(("HTML Extra Rules", html_extra_rules))
 
