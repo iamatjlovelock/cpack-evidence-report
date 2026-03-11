@@ -20,6 +20,9 @@ import sys
 from datetime import datetime, timezone
 
 
+FRAMEWORK_CONTROLS_FOLDER = "framework-controls"
+
+
 def get_python_executable():
     """Get the Python executable path."""
     return sys.executable
@@ -68,10 +71,17 @@ def main():
         epilog="""
 Example usage:
   # Run full workflow with PCI DSS framework
+  # (uses cached framework controls if available)
   python run_compliance_workflow.py \\
     --framework-id 1f50f59a-fc3c-4b99-be05-6a79cf3f9538 \\
     --conformance-pack PCI-DSS-CPAC \\
     --output-prefix "PCI_DSS_v4"
+
+  # Force re-download of framework controls
+  python run_compliance_workflow.py \\
+    --framework-id 1f50f59a-fc3c-4b99-be05-6a79cf3f9538 \\
+    --conformance-pack PCI-DSS-CPAC \\
+    --refresh-framework
 
   # Run only steps 3-4 using existing files
   python run_compliance_workflow.py \\
@@ -107,6 +117,11 @@ Example usage:
         "--skip-extract",
         action="store_true",
         help="Skip framework extraction (requires --framework-file)"
+    )
+    parser.add_argument(
+        "--refresh-framework",
+        action="store_true",
+        help="Force re-download of framework controls even if cached version exists"
     )
     parser.add_argument(
         "--skip-map",
@@ -146,8 +161,8 @@ Example usage:
     args = parser.parse_args()
 
     # Validate arguments
-    if not args.skip_extract and not args.framework_id:
-        parser.error("--framework-id is required unless --skip-extract is specified")
+    if not args.skip_extract and not args.framework_id and not args.framework_file:
+        parser.error("--framework-id is required unless --skip-extract or --framework-file is specified")
 
     if args.skip_extract and not args.framework_file:
         parser.error("--framework-file is required when using --skip-extract")
@@ -167,8 +182,29 @@ Example usage:
         os.makedirs(output_folder)
         print(f"Created output folder: {output_folder}")
 
-    # Define output file names (all within output folder)
-    framework_file = args.framework_file or os.path.join(output_folder, f"{output_prefix}_controls.json")
+    # Create framework-controls folder if needed
+    if not os.path.exists(FRAMEWORK_CONTROLS_FOLDER):
+        os.makedirs(FRAMEWORK_CONTROLS_FOLDER)
+        print(f"Created framework controls folder: {FRAMEWORK_CONTROLS_FOLDER}")
+
+    # Determine framework file path
+    # Priority: 1) --framework-file argument, 2) cached file in framework-controls folder
+    cached_framework_file = None
+    use_cached_framework = False
+
+    if args.framework_id:
+        cached_framework_file = os.path.join(FRAMEWORK_CONTROLS_FOLDER, f"{args.framework_id}_controls.json")
+        if os.path.exists(cached_framework_file) and not args.refresh_framework:
+            use_cached_framework = True
+
+    if args.framework_file:
+        framework_file = args.framework_file
+    elif use_cached_framework:
+        framework_file = cached_framework_file
+    elif args.framework_id:
+        framework_file = cached_framework_file
+    else:
+        framework_file = os.path.join(output_folder, f"{output_prefix}_controls.json")
     mapping_file = args.mapping_file or os.path.join(output_folder, f"{output_prefix}_config_mapping.json")
     report_file = args.report_file or os.path.join(output_folder, f"compliance_report_{args.conformance_pack}.json")
     configs_file = os.path.join(output_folder, f"compliance_report_{args.conformance_pack}_configurations.json")
@@ -213,7 +249,12 @@ Example usage:
     success = True
 
     # Step 1: Extract framework controls
-    if not args.skip_extract:
+    if args.skip_extract:
+        print(f"\nSkipping Step 1: Using existing framework file: {framework_file}")
+    elif use_cached_framework:
+        print(f"\nSkipping Step 1: Using cached framework file: {framework_file}")
+        print(f"  (use --refresh-framework to force re-download)")
+    else:
         script_args = [args.framework_id, "-o", framework_file] + region_args
         if not run_script(
             "get_framework_controls.py",
@@ -222,8 +263,6 @@ Example usage:
         ):
             print("\nWorkflow failed at Step 1: Framework extraction", file=sys.stderr)
             return 1
-    else:
-        print(f"\nSkipping Step 1: Using existing framework file: {framework_file}")
 
     # Step 2: Map Config rules
     if not args.skip_map:
@@ -342,8 +381,10 @@ Example usage:
     print("Generated Files:")
 
     generated_files = []
-    if not args.skip_extract:
+    if not args.skip_extract and not use_cached_framework:
         generated_files.append(("Framework Controls", framework_file))
+    elif use_cached_framework:
+        generated_files.append(("Framework Controls (cached)", framework_file))
     if not args.skip_map:
         generated_files.append(("Config Mapping", mapping_file))
     if not args.skip_report:
