@@ -106,12 +106,25 @@ def get_control_catalog_details(rule_identifiers: set, region: str = None) -> di
                     region_config = control.get("RegionConfiguration", {})
                     region_scope = region_config.get("Scope", "") if isinstance(region_config, dict) else str(region_config)
 
+                    # Handle Severity - might be dict or string
+                    severity = control.get("Severity", {})
+                    severity_value = severity.get("Severity", "") if isinstance(severity, dict) else str(severity) if severity else ""
+
+                    # Handle GovernedResources - list of resource types
+                    governed_resources = control.get("GovernedResources", [])
+                    if isinstance(governed_resources, list):
+                        governed_resources_list = governed_resources
+                    else:
+                        governed_resources_list = [str(governed_resources)] if governed_resources else []
+
                     controls[identifier] = {
                         "arn": control.get("Arn", ""),
                         "name": control.get("Name", ""),
                         "description": control.get("Description", ""),
                         "behavior": behavior_type,
                         "regionConfiguration": region_scope,
+                        "severity": severity_value,
+                        "governedResources": governed_resources_list,
                         "implementationType": impl_type,
                         "identifier": identifier
                     }
@@ -479,6 +492,9 @@ def generate_control_catalog_html(
             description = escape_html(control.get("description", "No description available"))
             behavior = escape_html(control.get("behavior", "N/A"))
             region_config = escape_html(control.get("regionConfiguration", "N/A"))
+            severity = escape_html(control.get("severity", "N/A")) or "N/A"
+            governed_resources = control.get("governedResources", [])
+            governed_resources_html = ", ".join([escape_html(r) for r in governed_resources]) if governed_resources else "N/A"
             arn = escape_html(control.get("arn", ""))
 
             html_content += f"""
@@ -488,12 +504,20 @@ def generate_control_catalog_html(
             <div class="control-description">{description}</div>
             <div class="control-meta">
                 <div class="meta-item">
+                    <div class="label">Severity</div>
+                    <div class="value">{severity}</div>
+                </div>
+                <div class="meta-item">
                     <div class="label">Behavior</div>
                     <div class="value">{behavior}</div>
                 </div>
                 <div class="meta-item">
                     <div class="label">Region Scope</div>
                     <div class="value">{region_config}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="label">Governed Resources</div>
+                    <div class="value" style="font-size: 12px;">{governed_resources_html}</div>
                 </div>
                 <div class="meta-item">
                     <div class="label">Control ARN</div>
