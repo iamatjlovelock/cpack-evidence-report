@@ -562,13 +562,26 @@ def generate_summary_page(
         num_rules_with_issues = len(rules_with_issues)
         issues_class = "count-non-compliant" if num_rules_with_issues > 0 else "count-compliant"
 
+        # Count unique missing rules (Config rules not in conformance pack)
+        missing_rules = set()
+        for control in control_set.get("controls", []):
+            for source in control.get("evidenceSources", []):
+                if source.get("sourceType") == "AWS_Config" and not source.get("inConformancePack"):
+                    keyword = source.get("keywordValue") or source.get("configRuleName")
+                    if keyword:
+                        missing_rules.add(keyword)
+
+        num_missing_rules = len(missing_rules)
+        missing_class = "count-non-compliant" if num_missing_rules > 0 else "count-compliant"
+
         html_parts.append(f"""
         <div class="control-set">
             <div class="control-set-header">
                 <h3>{cs_name}</h3>
                 <div class="stats">
                     {num_controls} controls |
-                    <span class="{issues_class}">{num_rules_with_issues} config rules with non-compliant resources</span>
+                    <span class="{issues_class}">{num_rules_with_issues} config rules with non-compliant resources</span> |
+                    <span class="{missing_class}">{num_missing_rules} missing from pack</span>
                 </div>
             </div>
             <table>
