@@ -196,6 +196,10 @@ def get_common_styles() -> str:
             background: #e2e8f0;
             color: #718096;
         }
+        .badge.missing {
+            background: #feebc8;
+            color: #c05621;
+        }
         .count-compliant {
             color: #22543d;
             font-weight: 600;
@@ -524,7 +528,7 @@ def generate_summary_page(
             <div class="value">{mapped_rules_count}</div>
         </div>
         <div class="card">
-            <h3>Unmapped Rules</h3>
+            <h3>Missing from Pack</h3>
             <div class="value">{"<a href='" + gap_report_link + "'>" if gap_report_link else ""}{unmapped_rules_count}{"</a>" if gap_report_link else ""}</div>
         </div>
         <div class="card">
@@ -584,18 +588,19 @@ def generate_summary_page(
             ctrl_name = escape_html(control.get("controlName", ""))
             sources = control.get("evidenceSources", [])
 
-            # Filter to AWS_Config sources with rules in conformance pack
-            config_sources = [
-                s for s in sources
-                if s.get("sourceType") == "AWS_Config" and s.get("inConformancePack")
-            ]
+            # Get all AWS_Config sources
+            all_config_sources = [s for s in sources if s.get("sourceType") == "AWS_Config"]
 
-            if not config_sources:
-                # Show control with no mapped sources
+            # Separate into mapped (in pack) and missing (not in pack)
+            mapped_sources = [s for s in all_config_sources if s.get("inConformancePack")]
+            missing_sources = [s for s in all_config_sources if not s.get("inConformancePack")]
+
+            if not all_config_sources:
+                # Show control with no Config rule references
                 html_parts.append(f"""
                     <tr>
                         <td>{ctrl_name}</td>
-                        <td style="color: #718096; font-style: italic;">No mapped Config rules</td>
+                        <td style="color: #718096; font-style: italic;">No Config rules referenced</td>
                         <td style="text-align: center;">-</td>
                         <td style="text-align: center;">-</td>
                         <td style="text-align: center;"><span class="badge not-applicable">N/A</span></td>
@@ -605,8 +610,12 @@ def generate_summary_page(
 
             # First source row includes control name
             first = True
-            for source in config_sources:
-                source_name = escape_html(source.get("sourceName", ""))
+
+            # Show mapped sources first
+            for source in mapped_sources:
+                # Use sourceName, fall back to keywordValue or configRuleName
+                source_name_raw = source.get("sourceName") or source.get("keywordValue") or source.get("configRuleName") or ""
+                source_name = escape_html(source_name_raw)
                 rule_name = source.get("configRuleName", "")
                 rule_anchor = make_anchor_id(rule_name)
                 comp_summary = source.get("complianceSummary", {})
@@ -631,6 +640,32 @@ def generate_summary_page(
                         <td style="text-align: center;" class="count-compliant">{compliant_count}</td>
                         <td style="text-align: center;" class="count-non-compliant">{non_compliant_count}</td>
                         <td style="text-align: center;">{status_badge}</td>
+                    </tr>
+""")
+
+            # Show missing sources (not in conformance pack)
+            for source in missing_sources:
+                source_name_raw = source.get("sourceName") or source.get("keywordValue") or ""
+                source_name = escape_html(source_name_raw)
+                keyword = source.get("keywordValue", "")
+                keyword_anchor = make_anchor_id(keyword)
+
+                ctrl_cell = ctrl_name if first else ""
+                first = False
+
+                # Link to gap report if available
+                if gap_report_link:
+                    source_display = f'<a href="{gap_report_link}#{keyword_anchor}">{source_name}</a>'
+                else:
+                    source_display = source_name
+
+                html_parts.append(f"""
+                    <tr>
+                        <td>{ctrl_cell}</td>
+                        <td>{source_display}</td>
+                        <td style="text-align: center;">-</td>
+                        <td style="text-align: center;">-</td>
+                        <td style="text-align: center;"><span class="badge missing">Missing</span></td>
                     </tr>
 """)
 
