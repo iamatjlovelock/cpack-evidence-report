@@ -242,7 +242,7 @@ Run `list_audit_manager_frameworks.py` to generate a list of all frameworks supp
 python list_audit_manager_frameworks.py
 ```
 
-This writes the list to `audit_manager_frameworks.json` and displays a summary. Use the framework ID with the `--framework-id` parameter in the workflow.
+This outputs a list of Audit Manager frameworks with their IDs. Use the framework ID with the `--framework-id` parameter in the workflow.
 
 **Common Framework IDs:**
 
