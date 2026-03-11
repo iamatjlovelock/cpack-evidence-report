@@ -16,6 +16,7 @@ This toolkit generates detailed compliance reports by:
 - Python 3.8+
 - AWS credentials configured (via environment variables, AWS CLI, or IAM role)
 - boto3 installed (`pip install boto3`)
+- pyyaml installed (`pip install pyyaml`) - required for `extract_conformance_pack_rules.py`
 
 ## Quick Start
 
@@ -28,10 +29,17 @@ python run_compliance_workflow.py \
   --output-prefix "PCI_DSS_v4"
 ```
 
-This creates a `PCI_DSS_v4/` folder containing:
+This creates output in two locations:
+
+**Framework Controls (cached for reuse):**
+```
+framework-controls/
+└── 1f50f59a-fc3c-4b99-be05-6a79cf3f9538_controls.json  # Cached by framework ID
+```
+
+**Report Output:**
 ```
 PCI_DSS_v4/
-├── PCI_DSS_v4_controls.json              # Framework controls and evidence sources
 ├── PCI_DSS_v4_config_mapping.json        # Config rule mappings with descriptions
 ├── compliance_report_PCI-DSS-CPAC.json   # Full compliance report
 ├── compliance_report_PCI-DSS-CPAC_configurations.json  # Resource configurations
@@ -40,8 +48,11 @@ PCI_DSS_v4/
 ├── compliance_report_PCI-DSS-CPAC_resources.html  # HTML resource configs
 ├── compliance_report_PCI-DSS-CPAC_gaps.html       # HTML gap analysis report
 ├── compliance_report_PCI-DSS-CPAC_extra_rules.html # HTML extra rules report
-└── compliance_report_PCI-DSS-CPAC_control_catalog.html # HTML control catalog
+├── compliance_report_PCI-DSS-CPAC_control_catalog.html # HTML control catalog
+└── compliance_report_PCI-DSS-CPAC_control_catalog.json # Control catalog data
 ```
+
+Framework controls are cached in the `framework-controls/` folder by framework ID. Subsequent workflow runs automatically reuse the cached file, avoiding redundant API calls.
 
 ### Generate HTML Reports
 
@@ -185,11 +196,55 @@ python generate_control_catalog_report.py <compliance_report.json> -o control_ca
 
 **Key Features:**
 - Fetches comprehensive control details from AWS Control Catalog API
-- Includes rule name, description, ARN, severity, behavior, region scope, and governed resources
+- Includes rule name, description, ARN, severity, behavior, and governed resources
 - Fetches control mappings via ListControlMappings API showing which frameworks reference each rule
 - Provides quick navigation index for all rules
 - Serves as central reference linked from evidence, gap, and extra rules reports
 - Identifies rules not found in the Control Catalog
+- Generates JSON extract (`--catalog-file`) for reuse with `--skip-fetch` mode
+
+## Utility Scripts
+
+### download_conformance_pack_templates.py
+
+Download conformance pack YAML templates from the AWS Config Rules GitHub repository.
+
+```bash
+# Download all templates
+python download_conformance_pack_templates.py
+
+# List available templates without downloading
+python download_conformance_pack_templates.py --list-only
+
+# Download to custom folder
+python download_conformance_pack_templates.py -o my-templates
+```
+
+**Key Features:**
+- Downloads from https://github.com/awslabs/aws-config-rules/tree/master/aws-config-conformance-packs
+- Parallel downloads for efficiency (configurable with `-j`)
+- Outputs to `conformance-pack-yamls/` by default
+
+### extract_conformance_pack_rules.py
+
+Extract Config rules from conformance pack YAML templates into CSV files.
+
+```bash
+# Process all YAML files
+python extract_conformance_pack_rules.py
+
+# Process a specific YAML file
+python extract_conformance_pack_rules.py AWS-Control-Tower-Detective-Guardrails.yaml
+
+# Custom input/output folders
+python extract_conformance_pack_rules.py -i my-yamls -o my-rules
+```
+
+**Key Features:**
+- Parses conformance pack YAML templates
+- Extracts ConfigRuleName and SourceIdentifier for each rule
+- Outputs CSV files to `conformance-pack-rules/` by default
+- Can process all YAMLs or a specific file
 
 ## Output File Relationships
 
@@ -313,9 +368,15 @@ python generate_extra_rules_report.py report.json -o report_prefix_extra_rules.h
 
 ### Workflow Options
 
-The unified workflow supports several skip flags:
+The unified workflow supports several options:
 
 ```bash
+# Force re-download of framework controls (ignores cache)
+python run_compliance_workflow.py \
+  --framework-id <id> \
+  --conformance-pack <pack> \
+  --refresh-framework
+
 # Skip HTML generation
 python run_compliance_workflow.py \
   --framework-id <id> \
@@ -331,6 +392,11 @@ python run_compliance_workflow.py \
   --mapping-file "existing_mapping.json" \
   --skip-extract --skip-map
 ```
+
+**Framework Caching:**
+- Framework controls are automatically cached in `framework-controls/` by framework ID
+- Subsequent runs reuse the cached file without re-downloading
+- Use `--refresh-framework` to force a fresh download from AWS Audit Manager
 
 ## Troubleshooting
 
