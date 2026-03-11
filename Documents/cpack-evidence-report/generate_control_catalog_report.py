@@ -98,12 +98,20 @@ def get_control_catalog_details(rule_identifiers: set, region: str = None) -> di
 
                 # Only include Config rules
                 if impl_type == "AWS::Config::ConfigRule" and identifier:
+                    # Handle Behavior - might be dict or string
+                    behavior = control.get("Behavior", {})
+                    behavior_type = behavior.get("Type", "") if isinstance(behavior, dict) else str(behavior)
+
+                    # Handle RegionConfiguration - might be dict or string
+                    region_config = control.get("RegionConfiguration", {})
+                    region_scope = region_config.get("Scope", "") if isinstance(region_config, dict) else str(region_config)
+
                     controls[identifier] = {
                         "arn": control.get("Arn", ""),
                         "name": control.get("Name", ""),
                         "description": control.get("Description", ""),
-                        "behavior": control.get("Behavior", {}).get("Type", ""),
-                        "regionConfiguration": control.get("RegionConfiguration", {}).get("Scope", ""),
+                        "behavior": behavior_type,
+                        "regionConfiguration": region_scope,
                         "implementationType": impl_type,
                         "identifier": identifier
                     }
