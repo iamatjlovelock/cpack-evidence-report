@@ -140,17 +140,13 @@ def get_control_catalog_details(rule_identifiers: set, region: str = None) -> di
 
                 # Only include Config rules
                 if impl_type == "AWS::Config::ConfigRule" and identifier:
-                    # Handle Behavior - might be dict or string
-                    behavior = control.get("Behavior", {})
-                    behavior_type = behavior.get("Type", "") if isinstance(behavior, dict) else str(behavior)
+                    # Handle Behavior - API returns string directly (e.g., "DETECTIVE")
+                    behavior_val = control.get("Behavior")
+                    behavior_type = str(behavior_val) if behavior_val else "N/A"
 
-                    # Handle RegionConfiguration - might be dict or string
-                    region_config = control.get("RegionConfiguration", {})
-                    region_scope = region_config.get("Scope", "") if isinstance(region_config, dict) else str(region_config)
-
-                    # Handle Severity - might be dict or string
-                    severity = control.get("Severity", {})
-                    severity_value = severity.get("Severity", "") if isinstance(severity, dict) else str(severity) if severity else ""
+                    # Handle Severity - API returns string directly (e.g., "MEDIUM")
+                    severity_val = control.get("Severity")
+                    severity_value = str(severity_val) if severity_val else "N/A"
 
                     # Handle GovernedResources - list of resource types
                     governed_resources = control.get("GovernedResources", [])
@@ -164,7 +160,6 @@ def get_control_catalog_details(rule_identifiers: set, region: str = None) -> di
                         "name": control.get("Name", ""),
                         "description": control.get("Description", ""),
                         "behavior": behavior_type,
-                        "regionConfiguration": region_scope,
                         "severity": severity_value,
                         "governedResources": governed_resources_list,
                         "implementationType": impl_type,
@@ -685,7 +680,6 @@ def generate_control_catalog_html(
             name = escape_html(control.get("name", identifier))
             description = escape_html(control.get("description", "No description available"))
             behavior = escape_html(control.get("behavior", "N/A"))
-            region_config = escape_html(control.get("regionConfiguration", "N/A"))
             severity = escape_html(control.get("severity", "N/A")) or "N/A"
             governed_resources = control.get("governedResources", [])
             governed_resources_html = ", ".join([escape_html(r) for r in governed_resources]) if governed_resources else "N/A"
@@ -711,21 +705,29 @@ def generate_control_catalog_html(
                 <div class="mappings-list">
 """
                 # Show current framework mappings as individual cards
-                for mapping in current_mappings:
-                    framework_name_val = escape_html(mapping.get("frameworkName", ""))
-                    item_raw = mapping.get("item", "")
-                    item = escape_html(item_raw)
-                    # Look up the full control name
-                    control_name_full = control_name_lookup.get(item_raw, "")
-                    if control_name_full:
-                        control_display = escape_html(control_name_full)
-                    else:
-                        control_display = item
-                    if framework_name_val:
-                        mappings_html += f"""
+                if current_mappings:
+                    for mapping in current_mappings:
+                        framework_name_val = escape_html(mapping.get("frameworkName", ""))
+                        item_raw = mapping.get("item", "")
+                        item = escape_html(item_raw)
+                        # Look up the full control name
+                        control_name_full = control_name_lookup.get(item_raw, "")
+                        if control_name_full:
+                            control_display = escape_html(control_name_full)
+                        else:
+                            control_display = item
+                        if framework_name_val:
+                            mappings_html += f"""
                     <div class="mapping-item current-framework">
                         <span class="mapping-framework">{framework_name_val}</span>
                         <span class="mapping-detail">{control_display}</span>
+                    </div>
+"""
+                else:
+                    # No mapping for current framework
+                    mappings_html += f"""
+                    <div class="mapping-item" style="background: #fff5f5; border: 1px solid #feb2b2;">
+                        <span class="mapping-detail" style="color: #c53030;">Control Catalog does not contain mapping for {framework_name}</span>
                     </div>
 """
                 # Show other frameworks as a single grouped list
@@ -759,10 +761,6 @@ def generate_control_catalog_html(
                 <div class="meta-item">
                     <div class="label">Behavior</div>
                     <div class="value">{behavior}</div>
-                </div>
-                <div class="meta-item">
-                    <div class="label">Region Scope</div>
-                    <div class="value">{region_config}</div>
                 </div>
                 <div class="meta-item">
                     <div class="label">Governed Resources</div>
