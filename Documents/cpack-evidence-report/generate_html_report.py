@@ -456,6 +456,9 @@ def generate_summary_page(
     # Count extra rules in conformance pack not in framework
     extra_rules_count = len(compliance_report.get("conformancePackRulesNotInFramework", []))
 
+    # Total rules in conformance pack = mapped rules + extra rules
+    rules_in_pack_count = mapped_rules_count + extra_rules_count
+
     # Calculate compliance percentage
     total_evaluated = (
         summary.get("compliantResources", 0) +
@@ -519,6 +522,10 @@ def generate_summary_page(
     # Evidence Sources Summary Card Row
     html_parts.append(f"""
     <div class="summary-cards">
+        <div class="card">
+            <h3>Rules in Pack</h3>
+            <div class="value">{rules_in_pack_count}</div>
+        </div>
         <div class="card">
             <h3>Config Rules in Framework</h3>
             <div class="value">{total_config_rules}</div>
