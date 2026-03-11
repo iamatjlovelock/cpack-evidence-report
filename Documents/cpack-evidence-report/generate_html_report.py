@@ -595,7 +595,7 @@ def generate_summary_page(
                 <thead>
                     <tr>
                         <th style="width: 35%">Framework Control</th>
-                        <th style="width: 35%">Evidence Source</th>
+                        <th style="width: 35%">Evidence Source (Config Rule)</th>
                         <th style="width: 10%; text-align: center;">Compliant</th>
                         <th style="width: 10%; text-align: center;">Non-Compliant</th>
                         <th style="width: 10%; text-align: center;">Status</th>
