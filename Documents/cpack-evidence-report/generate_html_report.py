@@ -523,10 +523,6 @@ def generate_summary_page(
     html_parts.append(f"""
     <div class="summary-cards">
         <div class="card">
-            <h3>Rules in Pack</h3>
-            <div class="value">{rules_in_pack_count}</div>
-        </div>
-        <div class="card">
             <h3>Config Rules in Framework</h3>
             <div class="value">{total_config_rules}</div>
         </div>
@@ -537,6 +533,10 @@ def generate_summary_page(
         <div class="card">
             <h3>Missing from Pack</h3>
             <div class="value">{"<a href='" + gap_report_link + "'>" if gap_report_link else ""}{unmapped_rules_count}{"</a>" if gap_report_link else ""}</div>
+        </div>
+        <div class="card">
+            <h3>Rules in Pack</h3>
+            <div class="value">{rules_in_pack_count}</div>
         </div>
         <div class="card">
             <h3>Extra Rules in Pack</h3>
