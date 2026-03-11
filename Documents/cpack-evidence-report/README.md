@@ -185,7 +185,8 @@ python generate_control_catalog_report.py <compliance_report.json> -o control_ca
 
 **Key Features:**
 - Fetches comprehensive control details from AWS Control Catalog API
-- Includes rule name, description, severity, behavior, region scope, and governed resources
+- Includes rule name, description, ARN, severity, behavior, region scope, and governed resources
+- Fetches control mappings via ListControlMappings API showing which frameworks reference each rule
 - Provides quick navigation index for all rules
 - Serves as central reference linked from evidence, gap, and extra rules reports
 - Identifies rules not found in the Control Catalog
