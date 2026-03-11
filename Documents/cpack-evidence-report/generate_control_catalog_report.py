@@ -819,6 +819,16 @@ def main():
         default=None
     )
     parser.add_argument(
+        "--catalog-file",
+        help="Path to Control Catalog JSON file (output when fetching, input when using --skip-fetch)",
+        default=None
+    )
+    parser.add_argument(
+        "--skip-fetch",
+        action="store_true",
+        help="Skip fetching from Control Catalog API and use existing --catalog-file"
+    )
+    parser.add_argument(
         "--stdout",
         action="store_true",
         help="Print HTML to stdout instead of file"
@@ -826,28 +836,60 @@ def main():
 
     args = parser.parse_args()
 
+    # Validate skip-fetch requires catalog-file
+    if args.skip_fetch and not args.catalog_file:
+        parser.error("--catalog-file is required when using --skip-fetch")
+
     try:
         # Load compliance report
         print(f"Loading compliance report: {args.report_file}")
         compliance_report = load_json_file(args.report_file)
 
-        # Get all rule identifiers from framework
-        framework_identifiers = get_all_rule_identifiers(compliance_report)
-        print(f"  Found {len(framework_identifiers)} unique rule identifiers in framework")
+        # Determine catalog file path
+        if args.catalog_file:
+            catalog_file = args.catalog_file
+        else:
+            # Default to same directory as report file
+            base_name = args.report_file.rsplit(".", 1)[0]
+            catalog_file = f"{base_name}_control_catalog.json"
 
-        # Get identifiers for extra rules in conformance pack
-        extra_rule_names = compliance_report.get("conformancePackRulesNotInFramework", [])
-        extra_rule_identifiers = {}
-        if extra_rule_names:
-            print(f"  Looking up identifiers for {len(extra_rule_names)} extra rules...")
-            extra_rule_identifiers = get_extra_rule_identifiers(extra_rule_names, args.region)
-            print(f"  Found identifiers for {len(extra_rule_identifiers)} extra rules")
+        if args.skip_fetch:
+            # Load existing Control Catalog data
+            print(f"Loading Control Catalog data: {catalog_file}")
+            catalog_data = load_json_file(catalog_file)
+            catalog_controls = catalog_data.get("controls", {})
+            extra_rule_identifiers = catalog_data.get("extraRuleIdentifiers", {})
+            print(f"  Loaded {len(catalog_controls)} controls from catalog file")
+        else:
+            # Get all rule identifiers from framework
+            framework_identifiers = get_all_rule_identifiers(compliance_report)
+            print(f"  Found {len(framework_identifiers)} unique rule identifiers in framework")
 
-        # Get Control Catalog details
-        catalog_controls = get_control_catalog_details(
-            framework_identifiers | set(extra_rule_identifiers.values()),
-            args.region
-        )
+            # Get identifiers for extra rules in conformance pack
+            extra_rule_names = compliance_report.get("conformancePackRulesNotInFramework", [])
+            extra_rule_identifiers = {}
+            if extra_rule_names:
+                print(f"  Looking up identifiers for {len(extra_rule_names)} extra rules...")
+                extra_rule_identifiers = get_extra_rule_identifiers(extra_rule_names, args.region)
+                print(f"  Found identifiers for {len(extra_rule_identifiers)} extra rules")
+
+            # Get Control Catalog details
+            catalog_controls = get_control_catalog_details(
+                framework_identifiers | set(extra_rule_identifiers.values()),
+                args.region
+            )
+
+            # Save Control Catalog data to JSON
+            catalog_data = {
+                "generatedAt": compliance_report.get("reportGeneratedAt", ""),
+                "frameworkName": compliance_report.get("frameworkName", ""),
+                "conformancePackName": compliance_report.get("conformancePackName", ""),
+                "controls": catalog_controls,
+                "extraRuleIdentifiers": extra_rule_identifiers
+            }
+            with open(catalog_file, "w", encoding="utf-8") as f:
+                json.dump(catalog_data, f, indent=2)
+            print(f"Control Catalog data written to: {catalog_file}")
 
         # Generate HTML
         html_content = generate_control_catalog_html(

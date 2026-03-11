@@ -173,6 +173,9 @@ Example usage:
     report_file = args.report_file or os.path.join(output_folder, f"compliance_report_{args.conformance_pack}.json")
     configs_file = os.path.join(output_folder, f"compliance_report_{args.conformance_pack}_configurations.json")
 
+    # Control Catalog JSON file
+    control_catalog_json = os.path.join(output_folder, f"compliance_report_{args.conformance_pack}_control_catalog.json")
+
     # HTML report files
     html_prefix = os.path.join(output_folder, f"compliance_report_{args.conformance_pack}")
     html_summary = f"{html_prefix}_summary.html"
@@ -196,6 +199,7 @@ Example usage:
     print(f"  Config Mapping: {mapping_file}")
     print(f"  Compliance Report: {report_file}")
     print(f"  Resource Configs: {configs_file}")
+    print(f"  Control Catalog JSON: {control_catalog_json}")
     print(f"  HTML Summary: {html_summary}")
     print(f"  HTML Evidence: {html_evidence}")
     print(f"  HTML Resources: {html_resources}")
@@ -283,7 +287,12 @@ Example usage:
     # Step 6: Generate control catalog report
     if not args.skip_html:
         summary_link = os.path.basename(html_summary)
-        script_args = [report_file, "-o", html_control_catalog, "--summary-link", summary_link] + region_args
+        script_args = [
+            report_file,
+            "-o", html_control_catalog,
+            "--catalog-file", control_catalog_json,
+            "--summary-link", summary_link
+        ] + region_args
         if not run_script(
             "generate_control_catalog_report.py",
             script_args,
@@ -346,6 +355,7 @@ Example usage:
         generated_files.append(("HTML Evidence", html_evidence))
         generated_files.append(("HTML Resources", html_resources))
     if not args.skip_html:
+        generated_files.append(("Control Catalog JSON", control_catalog_json))
         generated_files.append(("HTML Control Catalog", html_control_catalog))
         generated_files.append(("HTML Gap Report", html_gaps))
         generated_files.append(("HTML Extra Rules", html_extra_rules))

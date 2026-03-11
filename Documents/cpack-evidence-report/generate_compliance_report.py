@@ -282,9 +282,17 @@ def generate_compliance_report(
 
             # Process each mapping source
             for mapping_source in control.get("controlMappingSources", []):
+                # Some frameworks use coreControlEvidenceSources (Core Control references)
+                # Others have the evidence source directly on the mapping source
                 core_evidence_sources = mapping_source.get("coreControlEvidenceSources", [])
 
-                for evidence_source in core_evidence_sources:
+                # If no core evidence sources, treat the mapping source itself as an evidence source
+                if not core_evidence_sources and mapping_source.get("sourceKeyword"):
+                    evidence_sources_to_process = [mapping_source]
+                else:
+                    evidence_sources_to_process = core_evidence_sources
+
+                for evidence_source in evidence_sources_to_process:
                     report["summary"]["totalEvidenceSources"] += 1
                     control_report["summary"]["totalEvidenceSources"] += 1
 
