@@ -355,7 +355,7 @@ This writes the list to `conformance_packs.json` and displays a summary. Use the
 
 ### Run Individual Scripts
 
-Each script can be run independently:
+Each script can be run independently. When using the workflow, output is automatically placed in `compliance-dashboards/`. For manual runs, you can specify any output paths:
 
 ```bash
 # Step 1: Extract framework
@@ -410,10 +410,12 @@ python run_compliance_workflow.py \
   --skip-extract --skip-map
 ```
 
-**Framework Caching:**
-- Framework controls are automatically cached in `framework-controls/` by framework ID
-- Subsequent runs reuse the cached file without re-downloading
-- Use `--refresh-framework` to force a fresh download from AWS Audit Manager
+**Caching and Output:**
+- Framework controls are cached in `framework-controls/` by framework ID
+- Control Catalog data is cached in `control-catalog/detective-controls.json`
+- Report output is placed in `compliance-dashboards/{output-prefix}/`
+- Use `--refresh-framework` to force fresh download of framework controls
+- Use `--refresh-catalog` to force fresh download of Control Catalog
 
 ## Troubleshooting
 
