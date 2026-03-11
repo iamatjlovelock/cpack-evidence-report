@@ -67,38 +67,46 @@ def get_all_rule_identifiers(compliance_report: dict) -> set:
     return identifiers
 
 
-def get_control_mappings(control_arn: str, client) -> list:
+def get_all_control_mappings(client) -> dict:
     """
-    Fetch control mappings for a specific control using ListControlMappings API.
+    Fetch all control mappings using ListControlMappings API.
 
     Args:
-        control_arn: The ARN of the control
         client: boto3 controlcatalog client
 
     Returns:
-        List of mapping details (frameworks/standards this control maps to)
+        Dict mapping control ARN to list of framework mappings
     """
-    mappings = []
+    mappings_by_arn = {}
 
     try:
         paginator = client.get_paginator("list_control_mappings")
 
-        for page in paginator.paginate(ControlArn=control_arn):
+        for page in paginator.paginate(MaxResults=100):
             for mapping in page.get("ControlMappings", []):
-                mapping_info = {
-                    "frameworkArn": mapping.get("FrameworkArn", ""),
-                    "frameworkName": mapping.get("FrameworkName", ""),
-                    "controlSetName": mapping.get("ControlSetName", ""),
-                    "controlName": mapping.get("ControlName", ""),
-                    "commonControlArn": mapping.get("CommonControlArn", "")
-                }
-                mappings.append(mapping_info)
+                control_arn = mapping.get("ControlArn", "")
+                if not control_arn:
+                    continue
 
-    except Exception:
-        # Silently handle errors for individual control mappings
-        pass
+                mapping_type = mapping.get("MappingType", "")
+                mapping_data = mapping.get("Mapping", {})
 
-    return mappings
+                # Extract framework info
+                if mapping_type == "FRAMEWORK" and "Framework" in mapping_data:
+                    framework = mapping_data["Framework"]
+                    mapping_info = {
+                        "frameworkName": framework.get("Name", ""),
+                        "item": framework.get("Item", "")
+                    }
+
+                    if control_arn not in mappings_by_arn:
+                        mappings_by_arn[control_arn] = []
+                    mappings_by_arn[control_arn].append(mapping_info)
+
+    except Exception as e:
+        print(f"  Warning: Could not fetch control mappings: {e}")
+
+    return mappings_by_arn
 
 
 def get_control_catalog_details(rule_identifiers: set, region: str = None) -> dict:
@@ -165,20 +173,16 @@ def get_control_catalog_details(rule_identifiers: set, region: str = None) -> di
 
         print(f"  Found {len(controls)} Config rule controls in catalog")
 
-        # Fetch mappings for controls that match our identifiers
-        matching_controls = {k: v for k, v in controls.items() if k in rule_identifiers}
-        if matching_controls:
-            print(f"  Fetching mappings for {len(matching_controls)} relevant controls...")
-            fetched = 0
-            for identifier, control_data in matching_controls.items():
-                arn = control_data.get("arn", "")
-                if arn:
-                    mappings = get_control_mappings(arn, client)
-                    controls[identifier]["mappings"] = mappings
-                    fetched += 1
-                    if fetched % 50 == 0:
-                        print(f"    Processed {fetched}/{len(matching_controls)} controls...")
-            print(f"  Completed fetching mappings")
+        # Fetch all control mappings
+        print("  Fetching control mappings...")
+        all_mappings = get_all_control_mappings(client)
+        print(f"  Found mappings for {len(all_mappings)} controls")
+
+        # Associate mappings with our controls
+        for identifier, control_data in controls.items():
+            arn = control_data.get("arn", "")
+            if arn and arn in all_mappings:
+                controls[identifier]["mappings"] = all_mappings[arn]
 
     except Exception as e:
         print(f"  Warning: Could not fetch from Controls Catalog: {e}")
@@ -598,14 +602,13 @@ def generate_control_catalog_html(
                 <div class="mappings-list">
 """
                 for mapping in mappings:
-                    framework_name = escape_html(mapping.get("frameworkName", ""))
-                    control_set = escape_html(mapping.get("controlSetName", ""))
-                    control_name = escape_html(mapping.get("controlName", ""))
-                    if framework_name:
+                    framework_name_val = escape_html(mapping.get("frameworkName", ""))
+                    item = escape_html(mapping.get("item", ""))
+                    if framework_name_val:
                         mappings_html += f"""
                     <div class="mapping-item">
-                        <span class="mapping-framework">{framework_name}</span>
-                        <span class="mapping-detail">{control_set} &raquo; {control_name}</span>
+                        <span class="mapping-framework">{framework_name_val}</span>
+                        <span class="mapping-detail">{item}</span>
                     </div>
 """
                 mappings_html += """
