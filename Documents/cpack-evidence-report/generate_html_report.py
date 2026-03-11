@@ -545,10 +545,10 @@ def generate_summary_page(
     </div>
 """)
 
-    # Controls by Control Set
+    # Framework Controls by Control Set
     html_parts.append("""
     <div class="section">
-        <h2>Controls by Control Set</h2>
+        <h2>Framework Controls by Control Set</h2>
 """)
 
     for control_set in compliance_report.get("controlSets", []):
