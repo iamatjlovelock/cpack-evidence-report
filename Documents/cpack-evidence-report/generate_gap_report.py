@@ -324,7 +324,7 @@ def generate_gap_report_html(
             keyword_display = f'<a href="{control_catalog_link}#{keyword_anchor}">{keyword_display}</a>'
 
         html_content += f"""
-        <div class="rule-entry">
+        <div class="rule-entry" id="{keyword_anchor}">
             <h3>{source_name}</h3>
             <div><span class="rule-keyword">{keyword_display}</span></div>
             <div class="rule-description">{description}</div>

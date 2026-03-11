@@ -676,8 +676,10 @@ def generate_summary_page(
                 # Link to gap report if available
                 if gap_report_link:
                     source_display = f'<a href="{gap_report_link}#{keyword_anchor}">{source_name}</a>'
+                    status_badge = f'<a href="{gap_report_link}#{keyword_anchor}"><span class="badge missing">Missing</span></a>'
                 else:
                     source_display = source_name
+                    status_badge = '<span class="badge missing">Missing</span>'
 
                 html_parts.append(f"""
                     <tr>
@@ -685,7 +687,7 @@ def generate_summary_page(
                         <td>{source_display}</td>
                         <td style="text-align: center;">-</td>
                         <td style="text-align: center;">-</td>
-                        <td style="text-align: center;"><span class="badge missing">Missing</span></td>
+                        <td style="text-align: center;">{status_badge}</td>
                     </tr>
 """)
 
