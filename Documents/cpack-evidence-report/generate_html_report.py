@@ -16,9 +16,11 @@ Three HTML files with hyperlinks between them.
 """
 
 import argparse
+import csv
 import html
 import json
 import os
+import re
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -47,6 +49,111 @@ def make_anchor_id(text: str) -> str:
         else:
             result += "_"
     return result
+
+
+def load_framework_template_mapping(csv_path: str) -> dict:
+    """
+    Load the framework-to-conformance-pack-template mapping from CSV.
+
+    Args:
+        csv_path: Path to the CSV file
+
+    Returns:
+        Dict mapping framework name to template name(s)
+    """
+    mapping = {}
+    try:
+        with open(csv_path, "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader)  # Skip header
+            for row in reader:
+                if len(row) >= 2:
+                    framework = row[0].strip()
+                    template = row[1].strip()
+                    if framework and template and template != "-- No equivalent --":
+                        mapping[framework] = template
+    except FileNotFoundError:
+        pass
+    return mapping
+
+
+def find_matching_template(framework_name: str, mapping: dict) -> str:
+    """
+    Find the conformance pack template that matches the framework name.
+
+    Args:
+        framework_name: The framework name from the compliance report
+        mapping: Dict from load_framework_template_mapping
+
+    Returns:
+        Template name or None if not found
+    """
+    # Try exact match first
+    if framework_name in mapping:
+        return mapping[framework_name]
+
+    # Try partial match (framework name contains mapping key or vice versa)
+    framework_lower = framework_name.lower()
+    for key, template in mapping.items():
+        if key.lower() in framework_lower or framework_lower in key.lower():
+            return template
+
+    # Try matching key patterns like "PCI DSS V4.0" in framework name
+    for key, template in mapping.items():
+        # Normalize both for comparison
+        key_normalized = re.sub(r'[^a-z0-9]', '', key.lower())
+        framework_normalized = re.sub(r'[^a-z0-9]', '', framework_lower)
+        if key_normalized in framework_normalized or framework_normalized in key_normalized:
+            return template
+
+    return None
+
+
+def count_config_rules_in_template(yaml_path: str) -> int:
+    """
+    Count the number of Config rules in a conformance pack YAML template.
+
+    Args:
+        yaml_path: Path to the YAML file
+
+    Returns:
+        Number of Config rules (AWS::Config::ConfigRule resources)
+    """
+    try:
+        with open(yaml_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        # Count occurrences of "Type: AWS::Config::ConfigRule"
+        return len(re.findall(r"Type:\s*AWS::Config::ConfigRule", content))
+    except FileNotFoundError:
+        return 0
+
+
+def find_template_yaml_file(template_name: str, yaml_folder: str) -> str:
+    """
+    Find the YAML file for a conformance pack template.
+
+    Args:
+        template_name: The template name from the mapping
+        yaml_folder: Folder containing YAML files
+
+    Returns:
+        Path to YAML file or None if not found
+    """
+    if not os.path.exists(yaml_folder):
+        return None
+
+    # Normalize template name for matching - remove spaces, lowercase
+    template_normalized = re.sub(r'[^a-z0-9]', '', template_name.lower())
+
+    for filename in os.listdir(yaml_folder):
+        if filename.endswith(".yaml"):
+            # Normalize filename for matching
+            filename_normalized = re.sub(r'[^a-z0-9]', '', filename.lower().replace(".yaml", ""))
+            # Check if template name is contained in filename or vice versa
+            if template_normalized in filename_normalized or filename_normalized in template_normalized:
+                return os.path.join(yaml_folder, filename)
+
+    return None
 
 
 def get_common_styles() -> str:
@@ -439,7 +546,9 @@ def generate_summary_page(
     evidence_sources: dict,
     prefix: str,
     gap_report_link: str = None,
-    extra_rules_report_link: str = None
+    extra_rules_report_link: str = None,
+    template_name: str = None,
+    template_rule_count: int = None
 ) -> str:
     """Generate the summary report HTML page."""
 
@@ -538,6 +647,15 @@ def generate_summary_page(
             <h3>Extra Rules in Pack</h3>
             <div class="value">{"<a href='" + extra_rules_report_link + "'>" if extra_rules_report_link else ""}{extra_rules_count}{"</a>" if extra_rules_report_link else ""}</div>
         </div>
+    </div>
+""")
+
+    # Conformance Pack Template Cross-Check
+    if template_name and template_rule_count is not None:
+        html_parts.append(f"""
+    <div class="section">
+        <h3>Conformance Pack Template Cross-Check</h3>
+        <p>The conformance pack template <strong>{escape_html(template_name)}</strong> associated with this framework contains <strong>{template_rule_count}</strong> Config Rules.</p>
     </div>
 """)
 
@@ -1159,8 +1277,26 @@ def main():
         extra_rules_report_link = f"{link_prefix}_extra_rules.html"
         control_catalog_link = f"{link_prefix}_control_catalog.html"
 
+        # Look up conformance pack template for this framework
+        template_name = None
+        template_rule_count = None
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        csv_path = os.path.join(script_dir, "Framework-to-conformance-pack-template-mapping.csv")
+        yaml_folder = os.path.join(script_dir, "conformance-pack-yamls")
+
+        if os.path.exists(csv_path):
+            framework_name = compliance_report.get("frameworkName", "")
+            mapping = load_framework_template_mapping(csv_path)
+            template_name = find_matching_template(framework_name, mapping)
+
+            if template_name:
+                yaml_file = find_template_yaml_file(template_name, yaml_folder)
+                if yaml_file:
+                    template_rule_count = count_config_rules_in_template(yaml_file)
+                    print(f"  Template cross-check: {template_name} has {template_rule_count} rules")
+
         # Summary page
-        summary_html = generate_summary_page(compliance_report, evidence_sources, link_prefix, gap_report_link, extra_rules_report_link)
+        summary_html = generate_summary_page(compliance_report, evidence_sources, link_prefix, gap_report_link, extra_rules_report_link, template_name, template_rule_count)
         summary_file = f"{output_prefix}_summary.html"
         with open(summary_file, "w", encoding="utf-8") as f:
             f.write(summary_html)
