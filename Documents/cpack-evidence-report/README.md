@@ -143,10 +143,12 @@ python generate_html_report.py <compliance_report.json> <configurations.json>
 **Generates three interconnected HTML pages:**
 
 1. **Summary Page** (`*_summary.html`)
-   - Compliance summary cards (controls, resources, compliance rate)
-   - Controls grouped by control set
+   - Compliance summary cards (control sets, framework controls, resources, compliance rate)
+   - Config rules summary (in framework, mapped to pack, missing from pack, extra rules)
+   - Conformance pack template cross-check showing matching AWS templates and rule counts
+   - Framework controls grouped by control set
    - Each control set shows number of controls and config rules with issues
-   - Evidence sources with compliant/non-compliant counts
+   - Evidence sources with compliant/non-compliant counts (missing rules link to gap report)
    - Links to evidence sources page
 
 2. **Evidence Sources Page** (`*_evidence.html`)
@@ -171,7 +173,9 @@ python generate_gap_report.py <compliance_report.json> -o gaps.html --summary-li
 - Identifies rules in the framework that are missing from the conformance pack
 - Groups unmapped rules by keyword value (unique rules)
 - Shows which controls reference each unmapped rule
+- Uses rule descriptions from cached Control Catalog data
 - Includes navigation link back to summary page
+- Links to Control Catalog report for detailed rule information
 - Helps identify gaps between compliance framework requirements and deployed controls
 
 ### 7. generate_extra_rules_report.py
@@ -201,9 +205,12 @@ python generate_control_catalog_report.py <compliance_report.json> -o control_ca
 - Fetches comprehensive control details from AWS Control Catalog API
 - Includes rule name, description, ARN, severity, behavior, and governed resources
 - Fetches control mappings via ListControlMappings API showing which frameworks reference each rule
-- Provides quick navigation index for all rules
+- Color-coded quick navigation index:
+  - **Green**: Rules in catalog and mapped to the current framework
+  - **Purple**: Rules in catalog but not mapped to the current framework
+  - **Red**: Rules not found in the Control Catalog
+- Control entries highlighted green when mapped to the current framework
 - Serves as central reference linked from evidence, gap, and extra rules reports
-- Identifies rules not found in the Control Catalog
 - Generates JSON extract (`--catalog-file`) for reuse with `--skip-fetch` mode
 
 ## Utility Scripts
@@ -262,6 +269,20 @@ python extract_conformance_pack_rules.py -i my-yamls -o my-rules
 - Extracts ConfigRuleName and SourceIdentifier for each rule
 - Outputs CSV files to `conformance-pack-rules/` by default
 - Can process all YAMLs or a specific file
+
+## Conformance Pack Template Cross-Check
+
+The summary report includes a cross-check section that shows conformance pack templates associated with the framework. This uses:
+
+- `Framework-to-conformance-pack-template-mapping.csv` - Maps Audit Manager frameworks to conformance pack template names
+- `conformance-pack-yamls/` - Downloaded YAML templates from AWS Config Rules repository
+
+The cross-check displays all matching templates with their Config rule counts. A note explains that the AWS Config API does not indicate which template was used when a conformance pack was deployed.
+
+To download the YAML templates:
+```bash
+python utility-scripts/download_conformance_pack_templates.py
+```
 
 ## Output File Relationships
 
