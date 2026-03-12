@@ -667,7 +667,18 @@ def generate_summary_page(
             information about each rule. To deploy a conformance pack, you will need to create a custom template or use
             a related framework's template.
         </p>
-    </div>""")
+    </div>
+    <div class="summary-cards">
+        <div class="card">
+            <h3>Control Sets</h3>
+            <div class="value">{summary.get('totalControlSets', 0)}</div>
+        </div>
+        <div class="card">
+            <h3>Framework Controls</h3>
+            <div class="value">{summary.get('totalControls', 0)}</div>
+        </div>
+    </div>
+""")
         else:
             html_parts.append(f"""
     <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
@@ -676,7 +687,7 @@ def generate_summary_page(
             This report analyzes the framework against a conformance pack template. No deployed conformance pack was evaluated,
             so resource compliance data is not available. Deploy the conformance pack to see actual compliance results.
         </p>
-    </div>""")
+    </div>
     <div class="summary-cards">
         <div class="card">
             <h3>Control Sets</h3>
