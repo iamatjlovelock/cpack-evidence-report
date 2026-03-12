@@ -257,10 +257,12 @@ def generate_control_catalog_html(
     for char in "-. ()":
         current_framework_normalized = current_framework_normalized.replace(char, "")
 
-    # Collect all identifiers we need
+    # Collect all identifiers and track their sources
     all_identifiers = set()
+    identifiers_in_framework = set()
+    identifiers_in_template = set()
 
-    # From framework
+    # From framework - track both identifier and whether it's in the conformance pack
     for control_set in compliance_report.get("controlSets", []):
         for control in control_set.get("controls", []):
             for source in control.get("evidenceSources", []):
@@ -268,10 +270,15 @@ def generate_control_catalog_html(
                     keyword = source.get("keywordValue")
                     if keyword:
                         all_identifiers.add(keyword)
+                        identifiers_in_framework.add(keyword)
+                        # Check if this rule is in the conformance pack/template
+                        if source.get("inConformancePack", False):
+                            identifiers_in_template.add(keyword)
 
-    # From extra rules
+    # From extra rules (in template but not in framework)
     for identifier in extra_rule_identifiers.values():
         all_identifiers.add(identifier)
+        identifiers_in_template.add(identifier)
 
     # Build control name lookup (item number -> control name)
     # Control names are like "2.2.1: System components are configured..."
@@ -542,6 +549,33 @@ def generate_control_catalog_html(
             color: #2d3748;
             font-weight: 500;
             margin-top: 3px;
+        }}
+        .source-badges {{
+            display: flex;
+            gap: 8px;
+            margin: 10px 0 15px 0;
+            flex-wrap: wrap;
+        }}
+        .source-badge {{
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+        }}
+        .badge-framework {{
+            background: #ebf8ff;
+            color: #2b6cb0;
+            border: 1px solid #90cdf4;
+        }}
+        .badge-template {{
+            background: #f0fff4;
+            color: #276749;
+            border: 1px solid #9ae6b4;
+        }}
+        .badge-not-in {{
+            background: #fff5f5;
+            color: #c53030;
+            border: 1px solid #feb2b2;
         }}
         .not-in-catalog {{
             background: #fff5f5;
@@ -830,10 +864,25 @@ def generate_control_catalog_html(
             </div>
 """
 
+                # Build source badges HTML
+            in_framework = identifier in identifiers_in_framework
+            in_template = identifier in identifiers_in_template
+            badges_html = '<div class="source-badges">'
+            if in_framework:
+                badges_html += '<span class="source-badge badge-framework">In Framework</span>'
+            else:
+                badges_html += '<span class="source-badge badge-not-in">Not in Framework</span>'
+            if in_template:
+                badges_html += '<span class="source-badge badge-template">In Conformance Pack Template</span>'
+            else:
+                badges_html += '<span class="source-badge badge-not-in">Not in Conformance Pack Template</span>'
+            badges_html += '</div>'
+
             html_content += f"""
         <div class="{entry_class}" id="{anchor}">
             <h3>{name}</h3>
             <div class="control-identifier">{escape_html(identifier)}</div>
+            {badges_html}
             <div class="control-description">{description}</div>
             <div class="control-arn">ARN: {arn}</div>
             <div class="control-meta">
@@ -854,10 +903,25 @@ def generate_control_catalog_html(
         </div>
 """
         else:
+            # Build source badges HTML for not-in-catalog entries
+            in_framework = identifier in identifiers_in_framework
+            in_template = identifier in identifiers_in_template
+            badges_html = '<div class="source-badges">'
+            if in_framework:
+                badges_html += '<span class="source-badge badge-framework">In Framework</span>'
+            else:
+                badges_html += '<span class="source-badge badge-not-in">Not in Framework</span>'
+            if in_template:
+                badges_html += '<span class="source-badge badge-template">In Conformance Pack Template</span>'
+            else:
+                badges_html += '<span class="source-badge badge-not-in">Not in Conformance Pack Template</span>'
+            badges_html += '</div>'
+
             html_content += f"""
         <div class="control-entry not-in-catalog" id="{anchor}">
             <h3>{escape_html(identifier)}</h3>
             <div class="control-identifier">{escape_html(identifier)}</div>
+            {badges_html}
             <div class="control-description">
                 This rule identifier was not found in the AWS Control Catalog.
                 It may be a custom rule or a rule that has been deprecated.
