@@ -522,6 +522,13 @@ def generate_control_catalog_html(
         .not-in-catalog h3 {{
             color: #c53030;
         }}
+        .mapped-to-framework {{
+            background: #f0fff4;
+            border-left-color: #48bb78;
+        }}
+        .mapped-to-framework h3 {{
+            color: #22543d;
+        }}
         .info-box {{
             background: #faf5ff;
             border: 1px solid #d6bcfa;
@@ -720,12 +727,14 @@ def generate_control_catalog_html(
             arn = escape_html(control.get("arn", ""))
             mappings = control.get("mappings", [])
 
+            # Check if mapped to current framework
+            current_mappings = [m for m in mappings if is_current_framework(m)]
+            other_mappings = [m for m in mappings if not is_current_framework(m)]
+            entry_class = "control-entry mapped-to-framework" if current_mappings else "control-entry"
+
             # Build mappings HTML
             mappings_html = ""
             if mappings:
-                # Separate current framework mappings from others
-                current_mappings = [m for m in mappings if is_current_framework(m)]
-                other_mappings = [m for m in mappings if not is_current_framework(m)]
 
                 mappings_html = """
             <div class="control-mappings">
@@ -776,7 +785,7 @@ def generate_control_catalog_html(
 """
 
             html_content += f"""
-        <div class="control-entry" id="{anchor}">
+        <div class="{entry_class}" id="{anchor}">
             <h3>{name}</h3>
             <div class="control-identifier">{escape_html(identifier)}</div>
             <div class="control-description">{description}</div>
