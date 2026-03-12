@@ -260,7 +260,7 @@ def main():
     )
     parser.add_argument(
         "--yaml-folder",
-        help="Folder containing YAML templates (default: conformance-pack-yamls)",
+        help="Folder containing YAML templates (default: conformance-packs/conformance-pack-yamls)",
         default=None
     )
     parser.add_argument(
@@ -280,8 +280,8 @@ def main():
 
         # Determine YAML template
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        yaml_folder = args.yaml_folder or os.path.join(script_dir, "conformance-pack-yamls")
-        csv_path = args.csv_mapping or os.path.join(script_dir, "Framework-to-conformance-pack-template-mapping.csv")
+        yaml_folder = args.yaml_folder or os.path.join(script_dir, "conformance-packs", "conformance-pack-yamls")
+        csv_path = args.csv_mapping or os.path.join(script_dir, "conformance-packs", "Framework-to-conformance-pack-template-mapping.csv")
 
         if args.template:
             template_path = args.template

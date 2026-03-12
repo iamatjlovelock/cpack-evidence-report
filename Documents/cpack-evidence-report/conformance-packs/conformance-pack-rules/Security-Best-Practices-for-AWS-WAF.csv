@@ -1,0 +1,6 @@
+ConfigRuleName,SourceIdentifier
+alb-waf-enabled,ALB_WAF_ENABLED
+api-gw-associated-with-waf,API_GW_ASSOCIATED_WITH_WAF
+waf-regional-rule-not-empty,WAF_REGIONAL_RULE_NOT_EMPTY
+waf-regional-rulegroup-not-empty,WAF_REGIONAL_RULEGROUP_NOT_EMPTY
+waf-regional-webacl-not-empty,WAF_REGIONAL_WEBACL_NOT_EMPTY

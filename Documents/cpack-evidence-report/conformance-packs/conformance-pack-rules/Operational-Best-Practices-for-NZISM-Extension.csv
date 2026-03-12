@@ -1,0 +1,13 @@
+ConfigRuleName,SourceIdentifier
+alb-waf-enabled,ALB_WAF_ENABLED
+api-gw-associated-with-waf,API_GW_ASSOCIATED_WITH_WAF
+api-gw-cache-enabled-and-encrypted,API_GW_CACHE_ENABLED_AND_ENCRYPTED
+dynamodb-in-backup-plan,DYNAMODB_IN_BACKUP_PLAN
+ebs-in-backup-plan,EBS_IN_BACKUP_PLAN
+efs-in-backup-plan,EFS_IN_BACKUP_PLAN
+rds-cluster-multi-az-enabled,RDS_CLUSTER_MULTI_AZ_ENABLED
+rds-in-backup-plan,RDS_IN_BACKUP_PLAN
+rds-multi-az-support,RDS_MULTI_AZ_SUPPORT
+s3-bucket-versioning-enabled,S3_BUCKET_VERSIONING_ENABLED
+s3-default-encryption-kms,S3_DEFAULT_ENCRYPTION_KMS
+sns-encrypted-kms,SNS_ENCRYPTED_KMS

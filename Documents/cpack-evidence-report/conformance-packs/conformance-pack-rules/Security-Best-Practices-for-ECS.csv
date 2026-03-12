@@ -1,0 +1,10 @@
+ConfigRuleName,SourceIdentifier
+ecs-container-insights-enabled,ECS_CONTAINER_INSIGHTS_ENABLED
+ecs-containers-nonprivileged,ECS_CONTAINERS_NONPRIVILEGED
+ecs-containers-readonly-access,ECS_CONTAINERS_READONLY_ACCESS
+ecs-fargate-latest-platform-version,ECS_FARGATE_LATEST_PLATFORM_VERSION
+ecs-no-environment-secrets,ECS_NO_ENVIRONMENT_SECRETS
+ecs-task-definition-memory-hard-limit,ECS_TASK_DEFINITION_MEMORY_HARD_LIMIT
+ecs-task-definition-nonroot-user,ECS_TASK_DEFINITION_NONROOT_USER
+ecs-task-definition-pid-mode-check,ECS_TASK_DEFINITION_PID_MODE_CHECK
+ecs-task-definition-user-for-host-mode-check,ECS_TASK_DEFINITION_USER_FOR_HOST_MODE_CHECK

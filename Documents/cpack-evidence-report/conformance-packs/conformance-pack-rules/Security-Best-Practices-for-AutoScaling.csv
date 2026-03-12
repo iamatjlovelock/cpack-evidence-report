@@ -1,0 +1,8 @@
+ConfigRuleName,SourceIdentifier
+autoscaling-capacity-rebalancing,AUTOSCALING_CAPACITY_REBALANCING
+autoscaling-group-elb-healthcheck-required,AUTOSCALING_GROUP_ELB_HEALTHCHECK_REQUIRED
+autoscaling-launch-config-hop-limit,AUTOSCALING_LAUNCH_CONFIG_HOP_LIMIT
+autoscaling-launch-config-public-ip-disabled,AUTOSCALING_LAUNCH_CONFIG_PUBLIC_IP_DISABLED
+autoscaling-launchconfig-requires-imdsv2,AUTOSCALING_LAUNCHCONFIG_REQUIRES_IMDSV2
+autoscaling-multiple-az,AUTOSCALING_MULTIPLE_AZ
+autoscaling-multiple-instance-types,AUTOSCALING_MULTIPLE_INSTANCE_TYPES

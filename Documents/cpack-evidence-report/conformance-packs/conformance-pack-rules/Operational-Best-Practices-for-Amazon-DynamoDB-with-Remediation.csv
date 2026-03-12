@@ -1,0 +1,3 @@
+ConfigRuleName,SourceIdentifier
+DynamoDbAutoscalingEnabled,DYNAMODB_AUTOSCALING_ENABLED
+DynamoDbThroughputLimitCheck,DYNAMODB_THROUGHPUT_LIMIT_CHECK

@@ -1,0 +1,5 @@
+ConfigRuleName,SourceIdentifier
+lambda-dlq-check,LAMBDA_DLQ_CHECK
+lambda-function-settings-check,LAMBDA_FUNCTION_SETTINGS_CHECK
+lambda-inside-vpc,LAMBDA_INSIDE_VPC
+lambda-vpc-multi-az-check,LAMBDA_VPC_MULTI_AZ_CHECK

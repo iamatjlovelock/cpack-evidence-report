@@ -1,0 +1,15 @@
+ConfigRuleName,SourceIdentifier
+appmesh-virtual-gateway-backend-defaults-tls-1984,APPMESH_VIRTUAL_GATEWAY_BACKEND_DEFAULTS_TLS
+appmesh-virtual-node-backend-defaults-tls-on-1984,APPMESH_VIRTUAL_NODE_BACKEND_DEFAULTS_TLS_ON
+msk-in-cluster-node-require-tls-1984,MSK_IN_CLUSTER_NODE_REQUIRE_TLS
+rds-mysql-instance-encrypted-in-transit-1984,RDS_MYSQL_INSTANCE_ENCRYPTED_IN_TRANSIT
+rds-postgres-instance-encrypted-in-transit-1984,RDS_POSTGRES_INSTANCE_ENCRYPTED_IN_TRANSIT
+ebs-snapshot-public-restorable-check-1985,EBS_SNAPSHOT_PUBLIC_RESTORABLE_CHECK
+s3-bucket-mfa-delete-enabled-1985,S3_BUCKET_MFA_DELETE_ENABLED
+s3-bucket-public-read-prohibited-1985,S3_BUCKET_PUBLIC_READ_PROHIBITED
+s3-bucket-public-write-prohibited-1985,S3_BUCKET_PUBLIC_WRITE_PROHIBITED
+aurora-resources-in-logically-air-gapped-vault-1985,AURORA_RESOURCES_IN_LOGICALLY_AIR_GAPPED_VAULT
+ebs-resources-in-logically-air-gapped-vault-1985,EBS_RESOURCES_IN_LOGICALLY_AIR_GAPPED_VAULT
+ec2-resources-in-logically-air-gapped-vault-1985,EC2_RESOURCES_IN_LOGICALLY_AIR_GAPPED_VAULT
+efs-resources-in-logically-air-gapped-vault-1985,EFS_RESOURCES_IN_LOGICALLY_AIR_GAPPED_VAULT
+s3-resources-in-logically-air-gapped-vault-1985,S3_RESOURCES_IN_LOGICALLY_AIR_GAPPED_VAULT

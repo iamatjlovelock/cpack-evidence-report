@@ -1,0 +1,4 @@
+ConfigRuleName,SourceIdentifier
+CustomRuleForEC2,{'Ref': 'CustomConfigRuleLambdaArn'}
+ConfigRuleForVolumeTags,REQUIRED_TAGS
+CloudTrailEnabled,CLOUD_TRAIL_ENABLED

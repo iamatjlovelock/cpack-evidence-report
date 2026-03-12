@@ -5,7 +5,7 @@ Download conformance pack YAML templates from the AWS Config Rules GitHub reposi
 This script fetches the list of YAML files from:
 https://github.com/awslabs/aws-config-rules/tree/master/aws-config-conformance-packs
 
-And downloads each file to a local folder called conformance-pack-yamls.
+And downloads each file to the conformance-packs/conformance-pack-yamls folder.
 """
 
 import argparse
@@ -79,8 +79,8 @@ def main():
     )
     parser.add_argument(
         "-o", "--output",
-        help="Output folder (default: conformance-pack-yamls)",
-        default="conformance-pack-yamls"
+        help="Output folder (default: conformance-packs/conformance-pack-yamls)",
+        default="conformance-packs/conformance-pack-yamls"
     )
     parser.add_argument(
         "-j", "--jobs",

@@ -1,0 +1,9 @@
+ConfigRuleName,SourceIdentifier
+opensearch-access-control-enabled,OPENSEARCH_ACCESS_CONTROL_ENABLED
+opensearch-audit-logging-enabled,OPENSEARCH_AUDIT_LOGGING_ENABLED
+opensearch-data-node-fault-tolerance,OPENSEARCH_DATA_NODE_FAULT_TOLERANCE
+opensearch-encrypted-at-rest,OPENSEARCH_ENCRYPTED_AT_REST
+opensearch-https-required,OPENSEARCH_HTTPS_REQUIRED
+opensearch-in-vpc-only,OPENSEARCH_IN_VPC_ONLY
+opensearch-logs-to-cloudwatch,OPENSEARCH_LOGS_TO_CLOUDWATCH
+opensearch-node-to-node-encryption-check,OPENSEARCH_NODE_TO_NODE_ENCRYPTION_CHECK

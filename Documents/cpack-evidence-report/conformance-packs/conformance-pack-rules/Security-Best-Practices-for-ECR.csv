@@ -1,0 +1,4 @@
+ConfigRuleName,SourceIdentifier
+ecr-private-image-scanning-enabled,ECR_PRIVATE_IMAGE_SCANNING_ENABLED
+ecr-private-lifecycle-policy-configured,ECR_PRIVATE_LIFECYCLE_POLICY_CONFIGURED
+ecr-private-tag-immutability-enabled,ECR_PRIVATE_TAG_IMMUTABILITY_ENABLED

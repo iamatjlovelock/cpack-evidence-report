@@ -1,0 +1,8 @@
+ConfigRuleName,SourceIdentifier
+dax-encryption-enabled,DAX_ENCRYPTION_ENABLED
+dynamodb-autoscaling-enabled,DYNAMODB_AUTOSCALING_ENABLED
+dynamodb-in-backup-plan,DYNAMODB_IN_BACKUP_PLAN
+dynamodb-pitr-enabled,DYNAMODB_PITR_ENABLED
+dynamodb-table-encrypted-kms,DYNAMODB_TABLE_ENCRYPTED_KMS
+dynamodb-throughput-limit-check,DYNAMODB_THROUGHPUT_LIMIT_CHECK
+service-vpc-endpoint-enabled,SERVICE_VPC_ENDPOINT_ENABLED

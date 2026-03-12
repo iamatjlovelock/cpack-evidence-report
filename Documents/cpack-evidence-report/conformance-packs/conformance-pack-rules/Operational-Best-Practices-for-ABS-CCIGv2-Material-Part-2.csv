@@ -1,0 +1,15 @@
+ConfigRuleName,SourceIdentifier
+mfa-enabled-for-iam-console-access,MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS
+multi-region-cloudtrail-enabled,MULTI_REGION_CLOUD_TRAIL_ENABLED
+no-unrestricted-route-to-igw,NO_UNRESTRICTED_ROUTE_TO_IGW
+opensearch-encrypted-at-rest,OPENSEARCH_ENCRYPTED_AT_REST
+rds-enhanced-monitoring-enabled,RDS_ENHANCED_MONITORING_ENABLED
+redshift-cluster-maintenancesettings-check,REDSHIFT_CLUSTER_MAINTENANCESETTINGS_CHECK
+restricted-common-ports,RESTRICTED_INCOMING_TRAFFIC
+s3-account-level-public-access-blocks-periodic,S3_ACCOUNT_LEVEL_PUBLIC_ACCESS_BLOCKS_PERIODIC
+s3-bucket-default-lock-enabled,S3_BUCKET_DEFAULT_LOCK_ENABLED
+s3-bucket-versioning-enabled,S3_BUCKET_VERSIONING_ENABLED
+securityhub-enabled,SECURITYHUB_ENABLED
+vpc-default-security-group-closed,VPC_DEFAULT_SECURITY_GROUP_CLOSED
+vpc-flow-logs-enabled,VPC_FLOW_LOGS_ENABLED
+vpc-sg-open-only-to-authorized-ports,VPC_SG_OPEN_ONLY_TO_AUTHORIZED_PORTS

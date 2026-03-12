@@ -1432,8 +1432,8 @@ def main():
         # Look up conformance pack templates for this framework
         matching_templates = []
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        csv_path = os.path.join(script_dir, "Framework-to-conformance-pack-template-mapping.csv")
-        yaml_folder = os.path.join(script_dir, "conformance-pack-yamls")
+        csv_path = os.path.join(script_dir, "conformance-packs", "Framework-to-conformance-pack-template-mapping.csv")
+        yaml_folder = os.path.join(script_dir, "conformance-packs", "conformance-pack-yamls")
 
         if os.path.exists(csv_path):
             framework_name = compliance_report.get("frameworkName", "")

@@ -1,0 +1,8 @@
+ConfigRuleName,SourceIdentifier
+cloud-trail-cloud-watch-logs-enabled,CLOUD_TRAIL_CLOUD_WATCH_LOGS_ENABLED
+cloudtrail-enabled,CLOUD_TRAIL_ENABLED
+cloud-trail-encryption-enabled,CLOUD_TRAIL_ENCRYPTION_ENABLED
+cloud-trail-log-file-validation-enabled,CLOUD_TRAIL_LOG_FILE_VALIDATION_ENABLED
+cloudtrail-s3-dataevents-enabled,CLOUDTRAIL_S3_DATAEVENTS_ENABLED
+cloudtrail-security-trail-enabled,CLOUDTRAIL_SECURITY_TRAIL_ENABLED
+multi-region-cloudtrail-enabled,MULTI_REGION_CLOUD_TRAIL_ENABLED

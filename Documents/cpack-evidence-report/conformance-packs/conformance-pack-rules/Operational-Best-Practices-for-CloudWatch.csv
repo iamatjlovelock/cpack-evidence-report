@@ -1,0 +1,6 @@
+ConfigRuleName,SourceIdentifier
+cloudwatch-alarm-action-check,CLOUDWATCH_ALARM_ACTION_CHECK
+cloudwatch-alarm-action-enabled-check,CLOUDWATCH_ALARM_ACTION_ENABLED_CHECK
+cloudwatch-alarm-resource-check,CLOUDWATCH_ALARM_RESOURCE_CHECK
+cloudwatch-alarm-settings-check,CLOUDWATCH_ALARM_SETTINGS_CHECK
+cloudwatch-log-group-encrypted,CLOUDWATCH_LOG_GROUP_ENCRYPTED

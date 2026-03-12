@@ -1,0 +1,5 @@
+ConfigRuleName,SourceIdentifier
+eks-cluster-oldest-supported-version,EKS_CLUSTER_OLDEST_SUPPORTED_VERSION
+eks-cluster-supported-version,EKS_CLUSTER_SUPPORTED_VERSION
+eks-endpoint-no-public-access,EKS_ENDPOINT_NO_PUBLIC_ACCESS
+eks-secrets-encrypted,EKS_SECRETS_ENCRYPTED

@@ -235,7 +235,7 @@ python utility-scripts/download_conformance_pack_templates.py -o my-templates
 **Key Features:**
 - Downloads from https://github.com/awslabs/aws-config-rules/tree/master/aws-config-conformance-packs
 - Parallel downloads for efficiency (configurable with `-j`)
-- Outputs to `conformance-pack-yamls/` by default
+- Outputs to `conformance-packs/conformance-pack-yamls/` by default
 
 ### list_audit_manager_frameworks.py
 
@@ -267,15 +267,15 @@ python extract_conformance_pack_rules.py -i my-yamls -o my-rules
 **Key Features:**
 - Parses conformance pack YAML templates
 - Extracts ConfigRuleName and SourceIdentifier for each rule
-- Outputs CSV files to `conformance-pack-rules/` by default
+- Outputs CSV files to `conformance-packs/conformance-pack-rules/` by default
 - Can process all YAMLs or a specific file
 
 ## Conformance Pack Template Cross-Check
 
 The summary report includes a cross-check section that shows conformance pack templates associated with the framework. This uses:
 
-- `Framework-to-conformance-pack-template-mapping.csv` - Maps Audit Manager frameworks to conformance pack template names
-- `conformance-pack-yamls/` - Downloaded YAML templates from AWS Config Rules repository
+- `conformance-packs/Framework-to-conformance-pack-template-mapping.csv` - Maps Audit Manager frameworks to conformance pack template names
+- `conformance-packs/conformance-pack-yamls/` - Downloaded YAML templates from AWS Config Rules repository
 
 The cross-check displays all matching templates with their Config rule counts. A note explains that the AWS Config API does not indicate which template was used when a conformance pack was deployed.
 
@@ -451,7 +451,7 @@ This mode is useful for:
 - Understanding the gap between framework requirements and available templates
 - Planning conformance pack deployments
 
-The template is auto-detected using `Framework-to-conformance-pack-template-mapping.csv` and the YAML files in `conformance-pack-yamls/`. You can override the auto-detection with `--template path/to/template.yaml`.
+The template is auto-detected using `conformance-packs/Framework-to-conformance-pack-template-mapping.csv` and the YAML files in `conformance-packs/conformance-pack-yamls/`. You can override the auto-detection with `--template path/to/template.yaml`.
 
 **Caching and Output:**
 - Framework controls are cached in `framework-controls/` by framework ID

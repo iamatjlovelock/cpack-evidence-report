@@ -1,0 +1,4 @@
+ConfigRuleName,SourceIdentifier
+sagemaker-endpoint-configuration-kms-key-configured,SAGEMAKER_ENDPOINT_CONFIGURATION_KMS_KEY_CONFIGURED
+sagemaker-notebook-instance-kms-key-configured,SAGEMAKER_NOTEBOOK_INSTANCE_KMS_KEY_CONFIGURED
+sagemaker-notebook-no-direct-internet-access,SAGEMAKER_NOTEBOOK_NO_DIRECT_INTERNET_ACCESS

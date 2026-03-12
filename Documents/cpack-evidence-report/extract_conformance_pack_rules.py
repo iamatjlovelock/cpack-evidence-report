@@ -2,7 +2,7 @@
 """
 Extract Config rules from conformance pack YAML templates.
 
-This script parses YAML files from the conformance-pack-yamls folder and
+This script parses YAML files from the conformance-packs/conformance-pack-yamls folder and
 creates CSV files listing the Config rules defined in each conformance pack.
 """
 
@@ -97,13 +97,13 @@ def main():
     )
     parser.add_argument(
         "-i", "--input-folder",
-        help="Input folder containing YAML files (default: conformance-pack-yamls)",
-        default="conformance-pack-yamls"
+        help="Input folder containing YAML files (default: conformance-packs/conformance-pack-yamls)",
+        default="conformance-packs/conformance-pack-yamls"
     )
     parser.add_argument(
         "-o", "--output-folder",
-        help="Output folder for CSV files (default: conformance-pack-rules)",
-        default="conformance-pack-rules"
+        help="Output folder for CSV files (default: conformance-packs/conformance-pack-rules)",
+        default="conformance-packs/conformance-pack-rules"
     )
 
     args = parser.parse_args()

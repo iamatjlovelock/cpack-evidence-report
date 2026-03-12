@@ -1,0 +1,30 @@
+S Audit Manager Framework,Conformance pack template name,Link to documentation,AWS Config Conformance Pack Template file
+ACSC Essential Eight,,https://docs.aws.amazon.com/config/latest/developerguide/aws-control-tower-detective-guardrails.html,Operational Best Practices for ACSC Essential 8
+ACSC ISM 02 March 2023,,,Operational Best Practices for ACSC ISM - Part 1; Operational Best Practices for ACSC ISM - Part 2
+AWS Audit Manager Sample Framework,,,-- No equivalent --
+AWS Control Tower Guardrails,AWS Control Tower Detective Guardrails Conformance Pack,,AWS-Control-Tower-Detective-Guardrails.yaml
+AWS Generative AI Best Practices Framework v2,,,Operational Best Practices for AI and ML
+AWS License Manager,,,-- No equivalent --
+AWS Foundational Security Best Practices,,,Operational Best Practices for AWS Well-Architected Framework Security Pillar; plus Security Best Practice packs for multiple individual services
+AWS Operational Best Practices,,,-- No equivalent --
+AWS Well Architected Framework WAF v10,,,Operational Best Practices for AWS Well-Architected Framework Reliability Pillar; Operational Best Practices for AWS Well-Architected Framework Security Pillar
+CCCS Medium Cloud Control,,,Operational-Best-Practices-for-CCCS-Medium
+CIS AWS Benchmark v1.2.0,,,-- No equivalent --
+CIS AWS Benchmark v1.3.0,,,-- No equivalent --
+CIS AWS Benchmark v1.4.0,,,Operational-Best-Practices-for-CIS-AWS-v1.4-Level1; Operational-Best-Practices-for-CIS-AWS-v1.4-Level2
+"CIS Controls v7.1, IG1",,,-- No equivalent --
+"CIS Critical Security Controls version 8.0, IG1",,,Operational-Best-Practices-for-CIS-Critical-Security-Controls-v8-IG1
+FedRAMP Security Baseline Controls r4,,,Operational-Best-Practices-for-FedRAMP(Low); Operational-Best-Practices-for-FedRAMP(Moderate); Operational-Best-Practices-for-FedRAMP(High Part 1); Operational-Best-Practices-for-FedRAMP(High Part 2)
+GDPR 2016,,,-- No equivalent --
+Gramm-Leach-Bliley Act,,,Operational-Best-Practices-for-Gramm-Leach-Bliley-Act
+Title 21 CFR Part 11,,,Operational-Best-Practices-for-FDA-21CFR-Part-11
+"EU GMP Annex 11, v1",,,Operational-Best-Practices-for-GxP-EU-Annex-11
+HIPAA Security Rule: Feb 2003,,,Operational-Best-Practices-for-HIPAA-Security
+HIPAA Omnibus Final Rule,,,Operational-Best-Practices-for-HIPAA-Security
+ISO/IEC 27001:2013 Annex A,,,-- No equivalent --
+NIST SP 800-53 Rev 5,,,Operational-Best-Practices-for-NIST-800-53-rev-5
+NIST Cybersecurity Framework v1.1,,,Operational-Best-Practices-for-NIST-CSF
+NIST SP 800-171 Rev 2,,,Operational-Best-Practices-for-NIST-800-171
+PCI DSS V3.2.1,,,Operational Best Practices for PCI DSS 3.2.1
+PCI DSS V4.0,,,Operational-Best-Practices-for-PCI-DSS-v4.0
+SSAE-18 SOC 2,,,-- No equivalent --

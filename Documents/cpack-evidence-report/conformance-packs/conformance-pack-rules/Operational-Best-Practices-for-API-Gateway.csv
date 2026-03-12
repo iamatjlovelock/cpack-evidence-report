@@ -1,0 +1,9 @@
+ConfigRuleName,SourceIdentifier
+api-gw-associated-with-waf,API_GW_ASSOCIATED_WITH_WAF
+api-gw-cache-enabled-and-encrypted,API_GW_CACHE_ENABLED_AND_ENCRYPTED
+api-gw-endpoint-type-check,API_GW_ENDPOINT_TYPE_CHECK
+api-gw-execution-logging-enabled,API_GW_EXECUTION_LOGGING_ENABLED
+api-gw-ssl-enabled,API_GW_SSL_ENABLED
+api-gw-xray-enabled,API_GW_XRAY_ENABLED
+cloud-trail-cloud-watch-logs-enabled,CLOUD_TRAIL_CLOUD_WATCH_LOGS_ENABLED
+cloudtrail-enabled,CLOUD_TRAIL_ENABLED

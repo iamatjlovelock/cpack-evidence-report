@@ -1,0 +1,11 @@
+ConfigRuleName,SourceIdentifier
+cloudfront-accesslogs-enabled,CLOUDFRONT_ACCESSLOGS_ENABLED
+cloudfront-associated-with-waf,CLOUDFRONT_ASSOCIATED_WITH_WAF
+cloudfront-custom-ssl-certificate,CLOUDFRONT_CUSTOM_SSL_CERTIFICATE
+cloudfront-default-root-object-configured,CLOUDFRONT_DEFAULT_ROOT_OBJECT_CONFIGURED
+cloudfront-no-deprecated-ssl-protocols,CLOUDFRONT_NO_DEPRECATED_SSL_PROTOCOLS
+cloudfront-origin-access-identity-enabled,CLOUDFRONT_ORIGIN_ACCESS_IDENTITY_ENABLED
+cloudfront-origin-failover-enabled,CLOUDFRONT_ORIGIN_FAILOVER_ENABLED
+cloudfront-sni-enabled,CLOUDFRONT_SNI_ENABLED
+cloudfront-traffic-to-origin-encrypted,CLOUDFRONT_TRAFFIC_TO_ORIGIN_ENCRYPTED
+cloudfront-viewer-policy-https,CLOUDFRONT_VIEWER_POLICY_HTTPS

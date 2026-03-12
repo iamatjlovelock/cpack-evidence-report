@@ -1,0 +1,7 @@
+ConfigRuleName,SourceIdentifier
+codebuild-project-artifact-encryption,CODEBUILD_PROJECT_ARTIFACT_ENCRYPTION
+codebuild-project-environment-privileged-check,CODEBUILD_PROJECT_ENVIRONMENT_PRIVILEGED_CHECK
+codebuild-project-envvar-awscred-check,CODEBUILD_PROJECT_ENVVAR_AWSCRED_CHECK
+codebuild-project-logging-enabled,CODEBUILD_PROJECT_LOGGING_ENABLED
+codebuild-project-s3-logs-encrypted,CODEBUILD_PROJECT_S3_LOGS_ENCRYPTED
+codebuild-project-source-repo-url-check,CODEBUILD_PROJECT_SOURCE_REPO_URL_CHECK

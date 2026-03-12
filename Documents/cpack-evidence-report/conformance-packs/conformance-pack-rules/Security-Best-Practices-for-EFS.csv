@@ -1,0 +1,5 @@
+ConfigRuleName,SourceIdentifier
+efs-access-point-enforce-root-directory,EFS_ACCESS_POINT_ENFORCE_ROOT_DIRECTORY
+efs-access-point-enforce-user-identity,EFS_ACCESS_POINT_ENFORCE_USER_IDENTITY
+efs-encrypted-check,EFS_ENCRYPTED_CHECK
+efs-in-backup-plan,EFS_IN_BACKUP_PLAN

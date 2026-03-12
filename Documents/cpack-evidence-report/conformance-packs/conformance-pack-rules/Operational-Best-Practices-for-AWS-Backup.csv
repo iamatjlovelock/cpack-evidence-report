@@ -1,0 +1,14 @@
+ConfigRuleName,SourceIdentifier
+aurora-resources-protected-by-backup-plan,AURORA_RESOURCES_PROTECTED_BY_BACKUP_PLAN
+backup-plan-min-frequency-and-min-retention-check,BACKUP_PLAN_MIN_FREQUENCY_AND_MIN_RETENTION_CHECK
+backup-recovery-point-encrypted,BACKUP_RECOVERY_POINT_ENCRYPTED
+backup-recovery-point-manual-deletion-disabled,BACKUP_RECOVERY_POINT_MANUAL_DELETION_DISABLED
+backup-recovery-point-minimum-retention-check,BACKUP_RECOVERY_POINT_MINIMUM_RETENTION_CHECK
+dynamodb-resources-protected-by-backup-plan,DYNAMODB_RESOURCES_PROTECTED_BY_BACKUP_PLAN
+ebs-resources-protected-by-backup-plan,EBS_RESOURCES_PROTECTED_BY_BACKUP_PLAN
+ec2-resources-protected-by-backup-plan,EC2_RESOURCES_PROTECTED_BY_BACKUP_PLAN
+efs-resources-protected-by-backup-plan,EFS_RESOURCES_PROTECTED_BY_BACKUP_PLAN
+fsx-resources-protected-by-backup-plan,FSX_RESOURCES_PROTECTED_BY_BACKUP_PLAN
+rds-resources-protected-by-backup-plan,RDS_RESOURCES_PROTECTED_BY_BACKUP_PLAN
+s3-resources-protected-by-backup-plan,S3_RESOURCES_PROTECTED_BY_BACKUP_PLAN
+virtualmachine-resources-protected-by-backup-plan,VIRTUALMACHINE_RESOURCES_PROTECTED_BY_BACKUP_PLAN

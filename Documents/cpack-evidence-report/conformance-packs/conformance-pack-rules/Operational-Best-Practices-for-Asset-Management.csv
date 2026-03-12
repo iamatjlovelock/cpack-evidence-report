@@ -1,0 +1,14 @@
+ConfigRuleName,SourceIdentifier
+account-part-of-organizations,ACCOUNT_PART_OF_ORGANIZATIONS
+ec2-instance-managed-by-systems-manager,EC2_INSTANCE_MANAGED_BY_SSM
+ec2-instance-multiple-eni-check,EC2_INSTANCE_MULTIPLE_ENI_CHECK
+ec2-managedinstance-association-compliance-status-check,EC2_MANAGEDINSTANCE_ASSOCIATION_COMPLIANCE_STATUS_CHECK
+ec2-managedinstance-patch-compliance-status-check,EC2_MANAGEDINSTANCE_PATCH_COMPLIANCE_STATUS_CHECK
+ec2-security-group-attached-to-eni-periodic,EC2_SECURITY_GROUP_ATTACHED_TO_ENI_PERIODIC
+ec2-stopped-instance,EC2_STOPPED_INSTANCE
+ec2-volume-inuse-check,EC2_VOLUME_INUSE_CHECK
+ecr-private-tag-immutability-enabled,ECR_PRIVATE_TAG_IMMUTABILITY_ENABLED
+eip-attached,EIP_ATTACHED
+iam-user-unused-credentials-check,IAM_USER_UNUSED_CREDENTIALS_CHECK
+secretsmanager-secret-unused,SECRETSMANAGER_SECRET_UNUSED
+vpc-network-acl-unused-check,VPC_NETWORK_ACL_UNUSED_CHECK

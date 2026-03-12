@@ -1,0 +1,5 @@
+ConfigRuleName,SourceIdentifier
+netfw-policy-default-action-fragment-packets,NETFW_POLICY_DEFAULT_ACTION_FRAGMENT_PACKETS
+netfw-policy-default-action-full-packets,NETFW_POLICY_DEFAULT_ACTION_FULL_PACKETS
+netfw-policy-rule-group-associated,NETFW_POLICY_RULE_GROUP_ASSOCIATED
+netfw-stateless-rule-group-not-empty,NETFW_STATELESS_RULE_GROUP_NOT_EMPTY

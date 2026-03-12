@@ -1,0 +1,10 @@
+ConfigRuleName,SourceIdentifier
+redshift-backup-enabled,REDSHIFT_BACKUP_ENABLED
+redshift-cluster-configuration-check,REDSHIFT_CLUSTER_CONFIGURATION_CHECK
+redshift-cluster-kms-enabled,REDSHIFT_CLUSTER_KMS_ENABLED
+redshift-cluster-maintenancesettings-check,REDSHIFT_CLUSTER_MAINTENANCESETTINGS_CHECK
+redshift-cluster-public-access-check,REDSHIFT_CLUSTER_PUBLIC_ACCESS_CHECK
+redshift-default-admin-check,REDSHIFT_DEFAULT_ADMIN_CHECK
+redshift-default-db-name-check,REDSHIFT_DEFAULT_DB_NAME_CHECK
+redshift-enhanced-vpc-routing-enabled,REDSHIFT_ENHANCED_VPC_ROUTING_ENABLED
+redshift-require-tls-ssl,REDSHIFT_REQUIRE_TLS_SSL

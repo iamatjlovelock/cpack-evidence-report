@@ -1,0 +1,16 @@
+ConfigRuleName,SourceIdentifier
+access-keys-rotated,ACCESS_KEYS_ROTATED
+account-part-of-organizations,ACCOUNT_PART_OF_ORGANIZATIONS
+acm-certificate-expiration-check,ACM_CERTIFICATE_EXPIRATION_CHECK
+cloud-trail-cloud-watch-logs-enabled,CLOUD_TRAIL_CLOUD_WATCH_LOGS_ENABLED
+cloudtrail-enabled,CLOUD_TRAIL_ENABLED
+cloud-trail-encryption-enabled,CLOUD_TRAIL_ENCRYPTION_ENABLED
+dynamodb-autoscaling-enabled,DYNAMODB_AUTOSCALING_ENABLED
+dynamodb-throughput-limit-check,DYNAMODB_THROUGHPUT_LIMIT_CHECK
+ec2-instance-detailed-monitoring-enabled,EC2_INSTANCE_DETAILED_MONITORING_ENABLED
+guardduty-enabled-centralized,GUARDDUTY_ENABLED_CENTRALIZED
+guardduty-non-archived-findings,GUARDDUTY_NON_ARCHIVED_FINDINGS
+iam-password-policy,IAM_PASSWORD_POLICY
+lambda-concurrency-check,LAMBDA_CONCURRENCY_CHECK
+lambda-function-public-access-prohibited,LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED
+lambda-inside-vpc,LAMBDA_INSIDE_VPC
