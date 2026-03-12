@@ -1,30 +1,33 @@
-S Audit Manager Framework,Conformance Pack Template name,Other relevant Conformance packs,Notes
-ACSC Essential Eight,Operational Best Practices for ACSC Essential 8,,
-ACSC ISM 02 March 2023,Operational Best Practices for ACSC ISM - Part 1, Operational Best Practices for ACSC ISM - Part 2,
-AWS Audit Manager Sample Framework,,,No Equivalent
-AWS Control Tower Guardrails,AWS Control Tower Detective Guardrails Conformance Pack,,
-AWS Generative AI Best Practices Framework v2,Operational Best Practices for AI and ML,,
-AWS License Manager,,,No Equivalent
-AWS Foundational Security Best Practices,Operational Best Practices for AWS Well-Architected Framework Security Pillar,, plus Security Best Practice packs for multiple individual services
-AWS Operational Best Practices,,,No Equivalent
-AWS Well Architected Framework WAF v10,Operational Best Practices for AWS Well-Architected Framework Reliability Pillar,Operational Best Practices for AWS Well-Architected Framework Security Pillar,
-CCCS Medium Cloud Control,Operational Best Practices for Canadian Centre for Cyber Security (CCCS) Medium Cloud Control Profile,,
-CIS AWS Benchmark v1.2.0,,,No Equivalent
-CIS AWS Benchmark v1.3.0,,,No Equivalent
-CIS AWS Benchmark v1.4.0,Operational Best Practices for CIS AWS Foundations Benchmark v1.4 Level 2,Operational-Best-Practices-for-CIS-AWS-v1.4-Level1,
-"CIS Controls v7.1, IG1",,,No Equivalent
-"CIS Critical Security Controls version 8.0, IG1",Operational Best Practices for CIS Critical Security Controls v8 IG1,,
-FedRAMP Security Baseline Controls r4,Operational Best Practices for FedRAMP(Moderate),Operational-Best-Practices-for-FedRAMP(Low);  Operational-Best-Practices-for-FedRAMP(High Part 1); Operational-Best-Practices-for-FedRAMP(High Part 2),
-GDPR 2016,,,No Equivalent
-Gramm-Leach-Bliley Act,Operational Best Practices for Gramm Leach Bliley Act (GLBA),,
-Title 21 CFR Part 11,Operational Best Practices for FDA Title 21 CFR Part 11,,
-"EU GMP Annex 11, v1",Operational Best Practices for GxP EU Annex 11,,
-HIPAA Security Rule: Feb 2003,Operational Best Practices for HIPAA Security,,
-HIPAA Omnibus Final Rule,Operational Best Practices for HIPAA Security,,
-ISO/IEC 27001:2013 Annex A,,,No Equivalent
-NIST SP 800-53 Rev 5,Operational Best Practices for NIST 800-53 rev 5,,
-NIST Cybersecurity Framework v1.1,Operational Best Practices for NIST CSF,,
-NIST SP 800-171 Rev 2,Operational Best Practices for NIST 800 171,,
-PCI DSS V3.2.1,Operational Best Practices for PCI DSS 3.2.1,,
-PCI DSS V4.0,Operational Best Practices for PCI DSS 4.0 (Including global resource types),,
-SSAE-18 SOC 2,,,No Equivalent
+S Audit Manager Framework,Framework ID,Conformance Pack Template name,Other relevant Conformance packs,Notes
+Australian Cyber Security Center (ACSC) Essential Eight,af7b0deb-7677-4572-a793-c71b8191c247,Operational Best Practices for ACSC Essential 8,,
+Australian Cyber Security Center (ACSC) Information Security Manual (ISM) 02 March 2023,32fde694-d80e-4eb7-9bb6-9c09dd6a10ce,Operational Best Practices for ACSC ISM - Part 1, Operational Best Practices for ACSC ISM - Part 2,
+Amazon Web Services (AWS) Audit Manager Sample Framework,5fd216d8-14c4-4048-be1e-6ad78796760f,,,No Equivalent
+AWS Control Tower Guardrails,95ff996a-8f12-472b-afed-8ae27a5249cb,AWS Control Tower Detective Guardrails Conformance Pack,,
+AWS Foundational Security Best Practices,07938c2d-aa7a-442e-913a-4777b4efddd3,Operational Best Practices for AWS Well-Architected Framework Security Pillar,, plus Security Best Practice packs for multiple individual services
+AWS Generative AI Best Practices Framework v2,b4fad6de-7fa6-4423-9de0-2e189ed0ad2a,Operational Best Practices for AI and ML,,
+AWS License Manager,56495d8e-36c0-400c-b0c7-fbdb65c2ad33,,,No Equivalent
+AWS Operational Best Practices,fbb2b9b2-5a09-46fb-b338-ed2f8a86512d,,,No Equivalent
+Amazon Web Services (AWS) Well Architected Framework (WAF) v10,3a2d46e5-9210-450a-8d47-24be1d06c11c,Operational Best Practices for AWS Well-Architected Framework Reliability Pillar,Operational Best Practices for AWS Well-Architected Framework Security Pillar,
+Canadian Centre for Cyber Security (CCCS) Medium Cloud Control,5764aa26-b799-4b1f-8220-ffd16359be3e,Operational Best Practices for Canadian Centre for Cyber Security (CCCS) Medium Cloud Control Profile,,
+"Center for Internet Security (CIS) Amazon Web Services (AWS) Benchmark v1.2.0, Level 1",bbed05fd-e6e7-4577-9123-9b96d4ffd70c,,,No Equivalent
+"Center for Internet Security (CIS) Amazon Web Services (AWS) Benchmark v1.2.0, Level 1 and 2",e9f0bf34-e406-4d0f-a137-4dcf876bc106,,,No Equivalent
+"Center for Internet Security (CIS) Amazon Web Services (AWS) Benchmark v1.3.0, Level 1",4233c0c5-bce3-4007-889b-cb5dd7439f04,Operational Best Practices for CIS AWS Foundations Benchmark v1.4 Level 2,Operational-Best-Practices-for-CIS-AWS-v1.4-Level1,
+"Center for Internet Security (CIS) Amazon Web Services (AWS) Benchmark v1.3.0, Level 1 and 2",13b6bc45-90b7-4a7e-a325-7396583917ed,,,
+"Center for Internet Security (CIS) Amazon Web Services (AWS) Benchmark v1.4.0, Level 1",3edf1b44-0ad4-4df4-9221-a2aeef4c18ed,,,
+"Center for Internet Security (CIS) Amazon Web Services (AWS) Benchmark v1.4.0, Level 1 and 2",c96051ca-6851-4f22-8606-8ae487b13083,,,
+"Center for Internet Security (CIS) v7.1, IG1",48927755-5bd1-4b5a-80c9-58b9c8d9eb3f,,,No Equivalent
+"CIS Critical Security Controls version 8.0 (CIS v8.0), IG1",b38a0dfa-00c3-4f93-bc98-c2d1a66d8b61,Operational Best Practices for CIS Critical Security Controls v8 IG1,,
+EudraLex - The Rules Governing Medicinal Products in the European Union (EU) - Volume 4: Good Manufacturing Practice (GMP) Medicinal Products for Human and Veterinary Use - Annex 11,7933aaf1-05df-400e-bfbf-c082a08879ca,Operational Best Practices for GxP EU Annex 11,,
+"Federal Risk And Authorization Management Program (FedRAMP) Security Baseline Controls r4, Moderate",ff83d90c-fab0-4e29-9fd7-8c99047dc08c,Operational Best Practices for FedRAMP(Moderate),Operational-Best-Practices-for-FedRAMP(Low);  Operational-Best-Practices-for-FedRAMP(High Part 1); Operational-Best-Practices-for-FedRAMP(High Part 2),
+General Data Protection Regulation (GDPR) 2016,8d5192b6-9232-478b-a207-1eff9d390477,,,No Equivalent
+Gramm-Leach-Bliley Act (GLBA),b7922fc0-a76f-4964-8e80-7fd491656175,Operational Best Practices for Gramm Leach Bliley Act (GLBA),,
+Health Insurance Portability and Accountability Act (HIPAA) Omnibus Final Rule,de3f49df-49f8-4b40-ba6c-450622df5762,Operational Best Practices for HIPAA Security,,
+Health Insurance Portability and Accountability Act (HIPAA) Security Rule: Feb 2003,5f834145-2f6b-440e-9dfe-a28ab83bcb6d,Operational Best Practices for HIPAA Security,,
+International Organization for standardization (ISO)/International Electrotechnical Commission (IEC) 27001:2013 Annex A,15eeef72-ae1a-49e3-8a6f-ef1511385a77,,,No Equivalent
+NIST Cybersecurity Framework (CSF) v1.1,969e6712-eeda-449e-a581-d4b30489e8d3,Operational Best Practices for NIST CSF,,
+NIST 800-171 Revision 2: Protecting Controlled Unclassified Information in Nonfederal Systems and Organizations,3c4a1a1d-05da-48e1-a62e-2e52d9709e7d,Operational Best Practices for NIST 800 171,,
+NIST 800-53 Rev 5: Security and Privacy Controls for Information Systems and Organizations,b464e7f3-a041-44af-b09d-f0a98eee642f,Operational Best Practices for NIST 800-53 rev 5,,
+Payment Card Industry Data Security Standard (PCI DSS) v3.2.1,27e895d7-f27e-45d5-8b8a-bb766dafd225,Operational Best Practices for PCI DSS 3.2.1,,
+Payment Card Industry Data Security Standard (PCI DSS) v4.0,1f50f59a-fc3c-4b99-be05-6a79cf3f9538,Operational Best Practices for PCI DSS 4.0 (Including global resource types),,
+"Statement on Standards for Attestations Engagement (SSAE) No. 18, Service Organizations Controls (SOC) Report 2",a3b2dc50-59c3-401d-8c0b-2fc123175d2d,,,No Equivalent
+"Title 21 Code of Federal Regulations (CFR) Part 11, Electronic records; Electronic Signatures - Scope and Application 24 May 2023",73f639ea-3793-40a6-ad06-d6c993bc2b1c,Operational Best Practices for FDA Title 21 CFR Part 11,,
