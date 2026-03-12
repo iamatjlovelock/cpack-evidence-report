@@ -193,11 +193,11 @@ def generate_template_compliance_report(
     return report
 
 
-def find_best_matching_template(framework_name: str, yaml_folder: str, framework_mapping_csv: str = None, templates_csv: str = None) -> tuple:
+def find_best_matching_template(framework_name: str, yaml_folder: str, framework_mapping_csv: str = None, templates_csv: str = None, framework_id: str = None) -> tuple:
     """
     Find the best matching YAML template for a framework using two-step CSV lookup.
 
-    Step 1: Look up framework name in Framework-to-conformance-pack-template-mapping.csv
+    Step 1: Look up framework name/ID in Framework-to-conformance-pack-template-mapping.csv
             to get the conformance pack template name.
     Step 2: Look up template name in Conformance pack templates.csv to get the YAML filename.
 
@@ -206,6 +206,7 @@ def find_best_matching_template(framework_name: str, yaml_folder: str, framework
         yaml_folder: Folder containing YAML templates
         framework_mapping_csv: Path to Framework-to-conformance-pack-template-mapping.csv
         templates_csv: Path to Conformance pack templates.csv
+        framework_id: Framework ID for exact matching (optional)
 
     Returns:
         Tuple of (template_name, yaml_path) or (None, None) if not found
@@ -213,18 +214,29 @@ def find_best_matching_template(framework_name: str, yaml_folder: str, framework
     import csv
 
     # Step 1: Load framework-to-template mapping
+    # CSV format: Framework Name, Framework ID, Template Name, Other Templates, Notes
     framework_to_template = {}
+    framework_id_to_template = {}
     if framework_mapping_csv and os.path.exists(framework_mapping_csv):
         try:
             with open(framework_mapping_csv, "r", encoding="utf-8") as f:
                 reader = csv.reader(f)
                 next(reader)  # Skip header
                 for row in reader:
-                    if len(row) >= 2:
+                    if len(row) >= 3:
                         fw = row[0].strip()
-                        template = row[1].strip()
-                        if fw and template and template != "-- No equivalent --":
+                        fw_id = row[1].strip() if len(row) > 1 else ""
+                        template = row[2].strip() if len(row) > 2 else ""
+                        notes = row[4].strip() if len(row) > 4 else ""
+
+                        # Skip if no template or marked as "No Equivalent"
+                        if not template or "no equivalent" in notes.lower():
+                            continue
+
+                        if fw:
                             framework_to_template[fw] = template
+                        if fw_id:
+                            framework_id_to_template[fw_id] = template
         except Exception:
             pass
 
@@ -245,14 +257,19 @@ def find_best_matching_template(framework_name: str, yaml_folder: str, framework
             pass
 
     # Try to find matching framework in step 1
-    framework_normalized = re.sub(r'[^a-z0-9]', '', framework_name.lower())
+    # First try exact match by framework ID
     matched_template_name = None
+    if framework_id and framework_id in framework_id_to_template:
+        matched_template_name = framework_id_to_template[framework_id]
 
-    for key, template in framework_to_template.items():
-        key_normalized = re.sub(r'[^a-z0-9]', '', key.lower())
-        if key_normalized in framework_normalized or framework_normalized in key_normalized:
-            matched_template_name = template
-            break
+    # Fall back to fuzzy name matching
+    if not matched_template_name:
+        framework_normalized = re.sub(r'[^a-z0-9]', '', framework_name.lower())
+        for key, template in framework_to_template.items():
+            key_normalized = re.sub(r'[^a-z0-9]', '', key.lower())
+            if key_normalized in framework_normalized or framework_normalized in key_normalized:
+                matched_template_name = template
+                break
 
     if matched_template_name:
         # Step 2a: Try exact lookup in template-to-YAML mapping
@@ -331,7 +348,10 @@ def main():
         print(f"Loading framework controls: {args.framework_file}")
         framework_controls = load_json_file(args.framework_file)
         framework_name = framework_controls.get("frameworkName", "Unknown")
+        framework_id = framework_controls.get("frameworkId", "")
         print(f"  Framework: {framework_name}")
+        if framework_id:
+            print(f"  Framework ID: {framework_id}")
 
         # Determine YAML template
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -348,7 +368,7 @@ def main():
         else:
             print(f"Auto-detecting template for framework...")
             template_name, template_path = find_best_matching_template(
-                framework_name, yaml_folder, framework_mapping_csv, templates_csv
+                framework_name, yaml_folder, framework_mapping_csv, templates_csv, framework_id
             )
             if not template_path:
                 print("  No matching conformance pack template found for this framework")

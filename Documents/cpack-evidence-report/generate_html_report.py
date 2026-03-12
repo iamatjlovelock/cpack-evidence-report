@@ -51,30 +51,42 @@ def make_anchor_id(text: str) -> str:
     return result
 
 
-def load_framework_template_mapping(csv_path: str) -> dict:
+def load_framework_template_mapping(csv_path: str) -> tuple:
     """
     Load the framework-to-conformance-pack-template mapping from CSV.
+
+    CSV format: Framework Name, Framework ID, Template Name, Other Templates, Notes
 
     Args:
         csv_path: Path to Framework-to-conformance-pack-template-mapping.csv
 
     Returns:
-        Dict mapping framework name to template name(s)
+        Tuple of (name_mapping, id_mapping) where each is a dict mapping to template name
     """
-    mapping = {}
+    name_mapping = {}
+    id_mapping = {}
     try:
         with open(csv_path, "r", encoding="utf-8") as f:
             reader = csv.reader(f)
             next(reader)  # Skip header
             for row in reader:
-                if len(row) >= 2:
+                if len(row) >= 3:
                     framework = row[0].strip()
-                    template = row[1].strip()
-                    if framework and template and template != "-- No equivalent --":
-                        mapping[framework] = template
+                    framework_id = row[1].strip() if len(row) > 1 else ""
+                    template = row[2].strip() if len(row) > 2 else ""
+                    notes = row[4].strip() if len(row) > 4 else ""
+
+                    # Skip if no template or marked as "No Equivalent"
+                    if not template or "no equivalent" in notes.lower():
+                        continue
+
+                    if framework:
+                        name_mapping[framework] = template
+                    if framework_id:
+                        id_mapping[framework_id] = template
     except FileNotFoundError:
         pass
-    return mapping
+    return name_mapping, id_mapping
 
 
 def load_templates_to_yaml_mapping(csv_path: str) -> dict:
@@ -103,29 +115,35 @@ def load_templates_to_yaml_mapping(csv_path: str) -> dict:
     return mapping
 
 
-def find_matching_template(framework_name: str, mapping: dict) -> str:
+def find_matching_template(framework_name: str, name_mapping: dict, id_mapping: dict = None, framework_id: str = None) -> str:
     """
-    Find the conformance pack template that matches the framework name.
+    Find the conformance pack template that matches the framework.
 
     Args:
         framework_name: The framework name from the compliance report
-        mapping: Dict from load_framework_template_mapping
+        name_mapping: Dict mapping framework name to template name
+        id_mapping: Dict mapping framework ID to template name (optional)
+        framework_id: The framework ID for exact matching (optional)
 
     Returns:
         Template name or None if not found
     """
-    # Try exact match first
-    if framework_name in mapping:
-        return mapping[framework_name]
+    # Try exact match by framework ID first
+    if framework_id and id_mapping and framework_id in id_mapping:
+        return id_mapping[framework_id]
+
+    # Try exact match by name
+    if framework_name in name_mapping:
+        return name_mapping[framework_name]
 
     # Try partial match (framework name contains mapping key or vice versa)
     framework_lower = framework_name.lower()
-    for key, template in mapping.items():
+    for key, template in name_mapping.items():
         if key.lower() in framework_lower or framework_lower in key.lower():
             return template
 
     # Try matching key patterns like "PCI DSS V4.0" in framework name
-    for key, template in mapping.items():
+    for key, template in name_mapping.items():
         # Normalize both for comparison
         key_normalized = re.sub(r'[^a-z0-9]', '', key.lower())
         framework_normalized = re.sub(r'[^a-z0-9]', '', framework_lower)
@@ -1529,9 +1547,10 @@ def main():
 
         if os.path.exists(framework_mapping_csv):
             framework_name = compliance_report.get("frameworkName", "")
+            framework_id = compliance_report.get("frameworkId", "")
             # Step 1: Load framework-to-template mapping
-            framework_mapping = load_framework_template_mapping(framework_mapping_csv)
-            template_name = find_matching_template(framework_name, framework_mapping)
+            name_mapping, id_mapping = load_framework_template_mapping(framework_mapping_csv)
+            template_name = find_matching_template(framework_name, name_mapping, id_mapping, framework_id)
 
             if template_name:
                 # Step 2: Load template-to-YAML mapping
