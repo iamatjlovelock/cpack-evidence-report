@@ -280,6 +280,22 @@ def generate_control_catalog_html(
                 item_num = control_name.split(":")[0].strip()
                 control_name_lookup[item_num] = control_name
 
+    # Helper function to check if a mapping is for the current framework
+    def is_current_framework(m):
+        fw = m.get("frameworkName", "").upper()
+        for char in "-. ()":
+            fw = fw.replace(char, "")
+        return current_framework_normalized in fw or fw in current_framework_normalized
+
+    # Count rules not mapped to this framework (in catalog but no mapping for current framework)
+    not_mapped_count = 0
+    for identifier in all_identifiers:
+        if identifier in catalog_controls:
+            control = catalog_controls.get(identifier, {})
+            mappings = control.get("mappings", [])
+            if not any(is_current_framework(m) for m in mappings):
+                not_mapped_count += 1
+
     # Build navigation
     nav_html = ""
     if summary_link:
@@ -621,6 +637,10 @@ def generate_control_catalog_html(
             <h3>Not In Catalog</h3>
             <div class="value">{len([i for i in all_identifiers if i not in catalog_controls])}</div>
         </div>
+        <div class="card">
+            <h3>Not Mapped to Framework</h3>
+            <div class="value">{not_mapped_count}</div>
+        </div>
     </div>
 
     <div class="info-box">
@@ -637,13 +657,6 @@ def generate_control_catalog_html(
         <div class="toc-list">
 """
 
-    # Helper function to check if a mapping is for the current framework
-    def check_is_current_framework(m):
-        fw = m.get("frameworkName", "").upper()
-        for char in "-. ()":
-            fw = fw.replace(char, "")
-        return current_framework_normalized in fw or fw in current_framework_normalized
-
     # Add table of contents with color coding
     for identifier in sorted(all_identifiers):
         anchor = make_anchor_id(identifier)
@@ -653,7 +666,7 @@ def generate_control_catalog_html(
         else:
             control = catalog_controls.get(identifier, {})
             mappings = control.get("mappings", [])
-            if any(check_is_current_framework(m) for m in mappings):
+            if any(is_current_framework(m) for m in mappings):
                 # Green - in catalog and mapped to this framework
                 html_content += f'            <a href="#{anchor}" class="mapped">{escape_html(identifier)}</a>\n'
             else:
@@ -670,7 +683,7 @@ def generate_control_catalog_html(
     for identifier in all_identifiers:
         control = catalog_controls.get(identifier, {})
         mappings = control.get("mappings", [])
-        if any(check_is_current_framework(m) for m in mappings):
+        if any(is_current_framework(m) for m in mappings):
             has_current_framework_mappings = True
             break
 
@@ -711,12 +724,6 @@ def generate_control_catalog_html(
             mappings_html = ""
             if mappings:
                 # Separate current framework mappings from others
-                def is_current_framework(m):
-                    fw = m.get("frameworkName", "").upper()
-                    for char in "-. ()":
-                        fw = fw.replace(char, "")
-                    return current_framework_normalized in fw or fw in current_framework_normalized
-
                 current_mappings = [m for m in mappings if is_current_framework(m)]
                 other_mappings = [m for m in mappings if not is_current_framework(m)]
 
