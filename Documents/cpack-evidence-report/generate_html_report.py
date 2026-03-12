@@ -128,20 +128,21 @@ def count_config_rules_in_template(yaml_path: str) -> int:
         return 0
 
 
-def find_template_yaml_file(template_name: str, yaml_folder: str) -> str:
+def find_template_yaml_files(template_name: str, yaml_folder: str) -> list:
     """
-    Find the YAML file for a conformance pack template.
+    Find all YAML files that match a conformance pack template.
 
     Args:
         template_name: The template name from the mapping
         yaml_folder: Folder containing YAML files
 
     Returns:
-        Path to YAML file or None if not found
+        List of tuples (filename, path) for matching files
     """
     if not os.path.exists(yaml_folder):
-        return None
+        return []
 
+    matches = []
     # Normalize template name for matching - remove spaces, lowercase
     template_normalized = re.sub(r'[^a-z0-9]', '', template_name.lower())
 
@@ -151,9 +152,9 @@ def find_template_yaml_file(template_name: str, yaml_folder: str) -> str:
             filename_normalized = re.sub(r'[^a-z0-9]', '', filename.lower().replace(".yaml", ""))
             # Check if template name is contained in filename or vice versa
             if template_normalized in filename_normalized or filename_normalized in template_normalized:
-                return os.path.join(yaml_folder, filename)
+                matches.append((filename.replace(".yaml", ""), os.path.join(yaml_folder, filename)))
 
-    return None
+    return matches
 
 
 def get_common_styles() -> str:
@@ -547,8 +548,7 @@ def generate_summary_page(
     prefix: str,
     gap_report_link: str = None,
     extra_rules_report_link: str = None,
-    template_name: str = None,
-    template_rule_count: int = None
+    matching_templates: list = None
 ) -> str:
     """Generate the summary report HTML page."""
 
@@ -651,11 +651,21 @@ def generate_summary_page(
 """)
 
     # Conformance Pack Template Cross-Check
-    if template_name and template_rule_count is not None:
+    if matching_templates:
+        templates_html = ""
+        for template_name, rule_count in matching_templates:
+            templates_html += f"<li><strong>{escape_html(template_name)}</strong> — {rule_count} Config Rules</li>\n"
+
         html_parts.append(f"""
     <div class="section">
         <h3>Conformance Pack Template Cross-Check</h3>
-        <p>The conformance pack template <strong>{escape_html(template_name)}</strong> associated with this framework contains <strong>{template_rule_count}</strong> Config Rules.</p>
+        <p style="color: #718096; font-size: 14px; margin-bottom: 15px;">
+            <em>Note: The AWS Config API does not indicate which template was used when a conformance pack was deployed.
+            The following templates are associated with this framework and may have been used:</em>
+        </p>
+        <ul style="margin: 0; padding-left: 20px;">
+            {templates_html}
+        </ul>
     </div>
 """)
 
@@ -1277,9 +1287,8 @@ def main():
         extra_rules_report_link = f"{link_prefix}_extra_rules.html"
         control_catalog_link = f"{link_prefix}_control_catalog.html"
 
-        # Look up conformance pack template for this framework
-        template_name = None
-        template_rule_count = None
+        # Look up conformance pack templates for this framework
+        matching_templates = []
         script_dir = os.path.dirname(os.path.abspath(__file__))
         csv_path = os.path.join(script_dir, "Framework-to-conformance-pack-template-mapping.csv")
         yaml_folder = os.path.join(script_dir, "conformance-pack-yamls")
@@ -1290,13 +1299,14 @@ def main():
             template_name = find_matching_template(framework_name, mapping)
 
             if template_name:
-                yaml_file = find_template_yaml_file(template_name, yaml_folder)
-                if yaml_file:
-                    template_rule_count = count_config_rules_in_template(yaml_file)
-                    print(f"  Template cross-check: {template_name} has {template_rule_count} rules")
+                yaml_files = find_template_yaml_files(template_name, yaml_folder)
+                for name, path in yaml_files:
+                    rule_count = count_config_rules_in_template(path)
+                    matching_templates.append((name, rule_count))
+                    print(f"  Template cross-check: {name} has {rule_count} rules")
 
         # Summary page
-        summary_html = generate_summary_page(compliance_report, evidence_sources, link_prefix, gap_report_link, extra_rules_report_link, template_name, template_rule_count)
+        summary_html = generate_summary_page(compliance_report, evidence_sources, link_prefix, gap_report_link, extra_rules_report_link, matching_templates)
         summary_file = f"{output_prefix}_summary.html"
         with open(summary_file, "w", encoding="utf-8") as f:
             f.write(summary_html)
