@@ -220,12 +220,12 @@ def find_best_matching_template(framework_name: str, yaml_folder: str, csv_path:
         for key, template in mapping.items():
             key_normalized = re.sub(r'[^a-z0-9]', '', key.lower())
             if key_normalized in framework_normalized or framework_normalized in key_normalized:
-                # Find the YAML file
+                # Find the YAML file - check both directions since CSV names may differ from filenames
                 template_normalized = re.sub(r'[^a-z0-9]', '', template.lower())
                 for filename in os.listdir(yaml_folder):
                     if filename.endswith(".yaml"):
                         filename_normalized = re.sub(r'[^a-z0-9]', '', filename.lower().replace(".yaml", ""))
-                        if template_normalized in filename_normalized:
+                        if template_normalized in filename_normalized or filename_normalized in template_normalized:
                             return (filename.replace(".yaml", ""), os.path.join(yaml_folder, filename))
 
     # Fallback: Try direct name matching
