@@ -671,7 +671,7 @@ def generate_control_catalog_html(
         <p style="font-size: 13px; color: #718096; margin: 0 0 15px 0;">
             Entries in Control Catalog that reference the framework are shown in <span style="color: #38a169; font-weight: 600;">green</span>.
             Entries in Control Catalog that do not reference the framework are shown in <span style="color: #805ad5; font-weight: 600;">purple</span>.
-            Rules without an entry in Control Catalog are shown in <span style="color: #c53030; font-weight: 600;">red</span>.
+            Rules without an entry in Control Catalog are shown in <span style="color: #c53030; font-weight: 600;">Red</span>.
         </p>
         <div class="toc-list">
 """
@@ -913,23 +913,38 @@ def main():
             extra_rule_identifiers = catalog_data.get("extraRuleIdentifiers", {})
             if not extra_rule_identifiers:
                 # Global catalog doesn't have extraRuleIdentifiers, compute from compliance report
-                extra_rule_names = compliance_report.get("conformancePackRulesNotInFramework", [])
-                if extra_rule_names:
-                    print(f"  Looking up identifiers for {len(extra_rule_names)} extra rules...")
-                    extra_rule_identifiers = get_extra_rule_identifiers(extra_rule_names, args.region)
-                    print(f"  Found identifiers for {len(extra_rule_identifiers)} extra rules")
+                extra_rules = compliance_report.get("conformancePackRulesNotInFramework", [])
+                template_mode = compliance_report.get("templateMode", False)
+                if extra_rules:
+                    if template_mode:
+                        # In template mode, extra_rules already contains identifiers
+                        print(f"  Found {len(extra_rules)} extra rule identifiers in template")
+                        extra_rule_identifiers = {rule: rule for rule in extra_rules}
+                    else:
+                        # In normal mode, extra_rules contains rule names - look up identifiers
+                        print(f"  Looking up identifiers for {len(extra_rules)} extra rules...")
+                        extra_rule_identifiers = get_extra_rule_identifiers(extra_rules, args.region)
+                        print(f"  Found identifiers for {len(extra_rule_identifiers)} extra rules")
         else:
             # Get all rule identifiers from framework
             framework_identifiers = get_all_rule_identifiers(compliance_report)
             print(f"  Found {len(framework_identifiers)} unique rule identifiers in framework")
 
-            # Get identifiers for extra rules in conformance pack
-            extra_rule_names = compliance_report.get("conformancePackRulesNotInFramework", [])
+            # Get identifiers for extra rules in conformance pack/template
+            extra_rules = compliance_report.get("conformancePackRulesNotInFramework", [])
             extra_rule_identifiers = {}
-            if extra_rule_names:
-                print(f"  Looking up identifiers for {len(extra_rule_names)} extra rules...")
-                extra_rule_identifiers = get_extra_rule_identifiers(extra_rule_names, args.region)
-                print(f"  Found identifiers for {len(extra_rule_identifiers)} extra rules")
+            template_mode = compliance_report.get("templateMode", False)
+
+            if extra_rules:
+                if template_mode:
+                    # In template mode, extra_rules already contains identifiers
+                    print(f"  Found {len(extra_rules)} extra rule identifiers in template")
+                    extra_rule_identifiers = {rule: rule for rule in extra_rules}
+                else:
+                    # In normal mode, extra_rules contains rule names - look up identifiers
+                    print(f"  Looking up identifiers for {len(extra_rules)} extra rules...")
+                    extra_rule_identifiers = get_extra_rule_identifiers(extra_rules, args.region)
+                    print(f"  Found identifiers for {len(extra_rule_identifiers)} extra rules")
 
             # Get Control Catalog details
             catalog_controls = get_control_catalog_details(
