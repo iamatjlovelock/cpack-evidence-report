@@ -652,16 +652,31 @@ def generate_summary_page(
     {generate_page_header(framework_name, conformance_pack, generated_at)}
 """)
 
+    # Check if no template was available
+    no_template_available = compliance_report.get("noTemplateAvailable", False)
+
     # Summary Cards - different layout for template mode
     if template_mode:
-        html_parts.append(f"""
+        if no_template_available:
+            html_parts.append(f"""
+    <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+        <strong style="color: #b45309;">No Conformance Pack Template Available</strong>
+        <p style="color: #92400e; margin: 5px 0 0 0; font-size: 14px;">
+            There is no conformance pack template associated with the <strong>{escape_html(framework_name)}</strong> framework.
+            This report shows the Config rules referenced in the framework. Use the Control Catalog report to see detailed
+            information about each rule. To deploy a conformance pack, you will need to create a custom template or use
+            a related framework's template.
+        </p>
+    </div>""")
+        else:
+            html_parts.append(f"""
     <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
         <strong style="color: #0369a1;">Template Analysis Mode</strong>
         <p style="color: #0369a1; margin: 5px 0 0 0; font-size: 14px;">
             This report analyzes the framework against a conformance pack template. No deployed conformance pack was evaluated,
             so resource compliance data is not available. Deploy the conformance pack to see actual compliance results.
         </p>
-    </div>
+    </div>""")
     <div class="summary-cards">
         <div class="card">
             <h3>Control Sets</h3>
@@ -704,7 +719,18 @@ def generate_summary_page(
 
     # Evidence Sources Summary Card Row - different labels for template mode
     if template_mode:
-        html_parts.append(f"""
+        if no_template_available:
+            # No template - just show framework rules count
+            html_parts.append(f"""
+    <div class="summary-cards">
+        <div class="card">
+            <h3>Config Rules in Framework</h3>
+            <div class="value">{total_config_rules}</div>
+        </div>
+    </div>
+""")
+        else:
+            html_parts.append(f"""
     <div class="summary-cards">
         <div class="card">
             <h3>Config Rules in Framework</h3>

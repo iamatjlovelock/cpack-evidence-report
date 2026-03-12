@@ -334,9 +334,9 @@ Example usage:
     print(f"  HTML Evidence: {html_evidence}")
     if not template_mode:
         print(f"  HTML Resources: {html_resources}")
+    print(f"  HTML Control Catalog: {html_control_catalog}")
     print(f"  HTML Gap Report: {html_gaps}")
     print(f"  HTML Extra Rules: {html_extra_rules}")
-    print(f"  HTML Control Catalog: {html_control_catalog}")
 
     success = True
 
@@ -392,6 +392,9 @@ Example usage:
     else:
         print(f"\nSkipping Step 3: Using existing mapping file: {mapping_file}")
 
+    # Track if no template was available (for skipping gap/extra reports)
+    no_template_available = False
+
     # Step 4: Generate compliance report
     if not args.skip_report:
         if template_mode:
@@ -406,6 +409,14 @@ Example usage:
             ):
                 print("\nWorkflow failed at Step 4: Template report generation", file=sys.stderr)
                 return 1
+
+            # Check if no template was available
+            try:
+                with open(report_file, "r", encoding="utf-8") as f:
+                    report_data = json.load(f)
+                no_template_available = report_data.get("noTemplateAvailable", False)
+            except Exception:
+                pass
         else:
             # Normal mode: Use conformance pack report generator
             script_args = [
@@ -488,8 +499,10 @@ Example usage:
     else:
         print(f"\nSkipping Step 7: Control catalog report generation")
 
-    # Step 8: Generate gap report
-    if not args.skip_html:
+    # Step 8: Generate gap report (skip if no template available)
+    if no_template_available:
+        print(f"\nSkipping Step 8: Gap report (no template available for comparison)")
+    elif not args.skip_html:
         summary_link = os.path.basename(html_summary)
         control_catalog_link = os.path.basename(html_control_catalog)
         script_args = [report_file, "-o", html_gaps, "--summary-link", summary_link, "--control-catalog-link", control_catalog_link, "--catalog-file", cached_catalog_file]
@@ -503,8 +516,10 @@ Example usage:
     else:
         print(f"\nSkipping Step 8: Gap report generation")
 
-    # Step 9: Generate extra rules report
-    if not args.skip_html:
+    # Step 9: Generate extra rules report (skip if no template available)
+    if no_template_available:
+        print(f"\nSkipping Step 9: Extra rules report (no template available for comparison)")
+    elif not args.skip_html:
         summary_link = os.path.basename(html_summary)
         control_catalog_link = os.path.basename(html_control_catalog)
         script_args = [
@@ -558,8 +573,9 @@ Example usage:
         if not template_mode:
             generated_files.append(("HTML Resources", html_resources))
         generated_files.append(("HTML Control Catalog", html_control_catalog))
-        generated_files.append(("HTML Gap Report", html_gaps))
-        generated_files.append(("HTML Extra Rules", html_extra_rules))
+        if not no_template_available:
+            generated_files.append(("HTML Gap Report", html_gaps))
+            generated_files.append(("HTML Extra Rules", html_extra_rules))
 
     for name, path in generated_files:
         if os.path.exists(path):

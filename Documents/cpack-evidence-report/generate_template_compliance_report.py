@@ -65,7 +65,8 @@ def extract_rules_from_yaml(yaml_path: str) -> dict:
 def generate_template_compliance_report(
     framework_controls: dict,
     template_rules: dict,
-    template_name: str
+    template_name: str,
+    no_template: bool = False
 ) -> dict:
     """
     Generate a compliance report based on template rules.
@@ -74,16 +75,23 @@ def generate_template_compliance_report(
         framework_controls: Framework controls from get_framework_controls.py
         template_rules: Dict of rules from the YAML template
         template_name: Name of the template being used
+        no_template: If True, indicates no template was found for the framework
 
     Returns:
         Compliance report dict
     """
+    if no_template:
+        conformance_pack_name = "No Template Available"
+    else:
+        conformance_pack_name = f"Template: {template_name}"
+
     report = {
         "frameworkId": framework_controls.get("frameworkId", ""),
         "frameworkName": framework_controls.get("frameworkName", ""),
-        "conformancePackName": f"Template: {template_name}",
+        "conformancePackName": conformance_pack_name,
         "templateMode": True,
-        "templateName": template_name,
+        "noTemplateAvailable": no_template,
+        "templateName": template_name if not no_template else None,
         "reportGeneratedAt": datetime.now(timezone.utc).isoformat(),
         "summary": {
             "totalControlSets": 0,
@@ -331,6 +339,9 @@ def main():
         framework_mapping_csv = args.framework_mapping_csv or os.path.join(script_dir, "conformance-packs", "Framework-to-conformance-pack-template-mapping.csv")
         templates_csv = args.templates_csv or os.path.join(script_dir, "conformance-packs", "Conformance pack templates.csv")
 
+        no_template = False
+        template_rules = {}
+
         if args.template:
             template_path = args.template
             template_name = os.path.basename(template_path).replace(".yaml", "")
@@ -340,24 +351,31 @@ def main():
                 framework_name, yaml_folder, framework_mapping_csv, templates_csv
             )
             if not template_path:
-                print("Error: Could not find matching template for framework", file=sys.stderr)
-                print("Use --template to specify the YAML file manually", file=sys.stderr)
-                sys.exit(1)
+                print("  No matching conformance pack template found for this framework")
+                print("  Generating framework-only report (no template mapping)")
+                no_template = True
+                template_name = None
+                template_path = None
 
-        print(f"  Using template: {template_name}")
-        print(f"  Template path: {template_path}")
+        if template_path:
+            print(f"  Using template: {template_name}")
+            print(f"  Template path: {template_path}")
 
-        # Extract rules from template
-        print("Extracting rules from template...")
-        template_rules = extract_rules_from_yaml(template_path)
-        print(f"  Found {len(template_rules)} Config rules in template")
+            # Extract rules from template
+            print("Extracting rules from template...")
+            template_rules = extract_rules_from_yaml(template_path)
+            print(f"  Found {len(template_rules)} Config rules in template")
 
         # Generate report
-        print("Generating template-based compliance report...")
+        if no_template:
+            print("Generating framework-only report (no template available)...")
+        else:
+            print("Generating template-based compliance report...")
         report = generate_template_compliance_report(
             framework_controls,
             template_rules,
-            template_name
+            template_name,
+            no_template
         )
 
         # Count mapped/unmapped
@@ -371,9 +389,13 @@ def main():
                     else:
                         unmapped += 1
 
-        print(f"  Framework rules mapped to template: {mapped}")
-        print(f"  Framework rules not in template: {unmapped}")
-        print(f"  Extra rules in template: {len(report['conformancePackRulesNotInFramework'])}")
+        if no_template:
+            print(f"  Total framework Config rules: {unmapped}")
+            print(f"  (No template mapping - all rules shown as unmapped)")
+        else:
+            print(f"  Framework rules mapped to template: {mapped}")
+            print(f"  Framework rules not in template: {unmapped}")
+            print(f"  Extra rules in template: {len(report['conformancePackRulesNotInFramework'])}")
 
         # Write output
         output_file = args.output
