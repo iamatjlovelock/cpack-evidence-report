@@ -114,7 +114,7 @@ Example usage:
     )
     parser.add_argument(
         "--output-prefix",
-        help="Prefix for output files (default: conformance pack name)",
+        help="Prefix for output files (default: framework name if available, otherwise conformance pack name)",
         default=None
     )
     parser.add_argument(
@@ -192,23 +192,6 @@ Example usage:
     if not template_mode and args.skip_report and not args.report_file and not args.skip_configs:
         parser.error("--report-file is required when using --skip-report (unless also using --skip-configs)")
 
-    # Set output prefix
-    if template_mode:
-        output_prefix = args.output_prefix or "template_analysis"
-    else:
-        output_prefix = args.output_prefix or args.conformance_pack
-
-    # Create compliance-dashboards folder if needed
-    if not os.path.exists(COMPLIANCE_DASHBOARDS_FOLDER):
-        os.makedirs(COMPLIANCE_DASHBOARDS_FOLDER)
-        print(f"Created compliance dashboards folder: {COMPLIANCE_DASHBOARDS_FOLDER}")
-
-    # Create output folder inside compliance-dashboards
-    output_folder = os.path.join(COMPLIANCE_DASHBOARDS_FOLDER, output_prefix)
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-        print(f"Created output folder: {output_folder}")
-
     # Create framework-controls folder if needed
     if not os.path.exists(FRAMEWORK_CONTROLS_FOLDER):
         os.makedirs(FRAMEWORK_CONTROLS_FOLDER)
@@ -242,7 +225,38 @@ Example usage:
     elif args.framework_id:
         framework_file = cached_framework_file
     else:
-        framework_file = os.path.join(output_folder, f"{output_prefix}_controls.json")
+        framework_file = None
+
+    # Determine output prefix - prefer framework name from existing file if available
+    if args.output_prefix:
+        output_prefix = args.output_prefix
+    elif framework_file and os.path.exists(framework_file):
+        # Load framework to get its name
+        try:
+            with open(framework_file, "r", encoding="utf-8") as f:
+                fw_data = json.load(f)
+            framework_name = fw_data.get("frameworkName", "")
+            # Sanitize framework name for use as folder name
+            output_prefix = "".join(c if c.isalnum() or c in "._- " else "_" for c in framework_name)
+            output_prefix = output_prefix.replace(" ", "_")
+        except Exception:
+            output_prefix = args.conformance_pack if not template_mode else "template_analysis"
+    elif template_mode:
+        output_prefix = "template_analysis"
+    else:
+        output_prefix = args.conformance_pack
+
+    # Create compliance-dashboards folder if needed
+    if not os.path.exists(COMPLIANCE_DASHBOARDS_FOLDER):
+        os.makedirs(COMPLIANCE_DASHBOARDS_FOLDER)
+        print(f"Created compliance dashboards folder: {COMPLIANCE_DASHBOARDS_FOLDER}")
+
+    # Create output folder inside compliance-dashboards
+    output_folder = os.path.join(COMPLIANCE_DASHBOARDS_FOLDER, output_prefix)
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+        print(f"Created output folder: {output_folder}")
+
     mapping_file = args.mapping_file or os.path.join(output_folder, f"{output_prefix}_config_mapping.json")
 
     if template_mode:

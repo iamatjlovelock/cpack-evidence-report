@@ -1,21 +1,118 @@
-Conformance pack template name,AWS Config Conformance Pack Template file,Link to documentation
-Operational Best Practices for ACSC Essential 8,,
-Operational Best Practices for ACSC ISM - Part 1; Operational Best Practices for ACSC ISM - Part 2,,
+Template Name,YAML File,Documentation Link
 AWS Control Tower Detective Guardrails Conformance Pack,AWS-Control-Tower-Detective-Guardrails.yaml,https://docs.aws.amazon.com/config/latest/developerguide/aws-control-tower-detective-guardrails.html
-Operational Best Practices for AI and ML,,
-Operational Best Practices for AWS Well-Architected Framework Security Pillar; plus Security Best Practice packs for multiple individual services,,
-Operational Best Practices for AWS Well-Architected Framework Reliability Pillar; Operational Best Practices for AWS Well-Architected Framework Security Pillar,,
-Operational-Best-Practices-for-CCCS-Medium,,
-Operational-Best-Practices-for-CIS-AWS-v1.4-Level1; Operational-Best-Practices-for-CIS-AWS-v1.4-Level2,,
-Operational-Best-Practices-for-CIS-Critical-Security-Controls-v8-IG1,,
-Operational-Best-Practices-for-FedRAMP(Low); Operational-Best-Practices-for-FedRAMP(Moderate); Operational-Best-Practices-for-FedRAMP(High Part 1); Operational-Best-Practices-for-FedRAMP(High Part 2),,
-Operational-Best-Practices-for-Gramm-Leach-Bliley-Act,,
-Operational-Best-Practices-for-FDA-21CFR-Part-11,,
-Operational-Best-Practices-for-GxP-EU-Annex-11,,
-Operational-Best-Practices-for-HIPAA-Security,,
-Operational-Best-Practices-for-HIPAA-Security,,
-Operational-Best-Practices-for-NIST-800-53-rev-5,,
-Operational-Best-Practices-for-NIST-CSF,,
-Operational-Best-Practices-for-NIST-800-171,,
-Operational Best Practices for PCI DSS 3.2.1,,
-Operational-Best-Practices-for-PCI-DSS-v4.0,,
+Operational Best Practices for ABS CCIG 2.0 Material Workloads,Operational-Best-Practices-for-ABS-CCIGv2-Material.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-ABS-CCIGv2-Material.html
+Operational Best Practices for ABS CCIG 2.0 Material Workloads - Part 1,Operational-Best-Practices-for-ABS-CCIGv2-Material-Part-1.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-ABS-CCIGv2-Material.html
+Operational Best Practices for ABS CCIG 2.0 Material Workloads - Part 2,Operational-Best-Practices-for-ABS-CCIGv2-Material-Part-2.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-ABS-CCIGv2-Material.html
+Operational Best Practices for ABS CCIG 2.0 Standard Workloads,Operational-Best-Practices-for-ABS-CCIGv2-Standard.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-ABS-CCIGv2-Standard.html
+Operational Best Practices for ACSC Essential 8,Operational-Best-Practices-for-ACSC-Essential8.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-acsc_essential_8.html
+Operational Best Practices for ACSC ISM - Part 1,Operational-Best-Practices-for-ACSC-ISM-Part1.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-acsc-ism.html
+Operational Best Practices for ACSC ISM - Part 2,Operational-Best-Practices-for-ACSC-ISM-Part2.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-acsc-ism-part-2.html
+Operational Best Practices for AI and ML,Operational-Best-Practices-for-AI-and-ML.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-AI-and-ML.html
+Operational Best Practices for Amazon API Gateway,Operational-Best-Practices-for-API-Gateway.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-amazon-API-gateway.html
+Operational Best Practices for Amazon CloudWatch,Operational-Best-Practices-for-CloudWatch.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-amazon-cloudwatch.html
+Operational Best Practices for Amazon DynamoDB,Operational-Best-Practices-for-Amazon-DynamoDB.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-amazon-dynamodb.html
+Operational Best Practices for Amazon DynamoDB with Remediation,Operational-Best-Practices-for-Amazon-DynamoDB-with-Remediation.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-amazon-dynamodb.html
+Operational Best Practices for Amazon S3,Operational-Best-Practices-for-Amazon-S3.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-amazon-s3.html
+Operational Best Practices for Amazon S3 with Remediation,Operational-Best-Practices-for-Amazon-S3-with-Remediation.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-amazon-s3.html
+Operational Best Practices for APRA CPG 234,Operational-Best-Practices-for-APRA-CPG-234.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-apra_cpg_234.html
+Operational Best Practices for Asset Management,Operational-Best-Practices-for-Asset-Management.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-asset-management.html
+Operational Best Practices for AWS Backup,Operational-Best-Practices-for-AWS-Backup.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-aws-backup.html
+Operational Best Practices for AWS Identity And Access Management,Operational-Best-Practices-for-AWS-Identity-and-Access-Management.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-aws-identity-and-access-management.html
+Operational Best Practices for AWS Well-Architected Framework Reliability Pillar,Operational-Best-Practices-for-AWS-Well-Architected-Reliability-Pillar.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-wa-Reliability-Pillar.html
+Operational Best Practices for AWS Well-Architected Framework Security Pillar,Operational-Best-Practices-for-AWS-Well-Architected-Security-Pillar.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-wa-Security-Pillar.html
+Operational Best Practices for BCP and DR,Operational-Best-Practices-for-BCP-and-DR.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-BCP-and-DR.html
+Operational Best Practices for BNM RMiT,Operational-Best-Practices-for-BNM-RMiT.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-bnm-rmit.html
+Operational Best Practices for Canadian Centre for Cyber Security (CCCS) Medium Cloud Control Profile,Operational-Best-Practices-for-CCCS-Medium.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cccs_medium.html
+Operational Best Practices for CIS AWS Foundations Benchmark v1.3 Level 1,Operational-Best-Practices-for-CIS-AWS-FB-v1.3-Level1.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cis_aws_benchmark_level_1.html
+Operational Best Practices for CIS AWS Foundations Benchmark v1.3 Level 2,Operational-Best-Practices-for-CIS-AWS-FB-v1.3-Level2.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cis_aws_benchmark_level_2.html
+Operational Best Practices for CIS AWS Foundations Benchmark v1.4 Level 1,Operational-Best-Practices-for-CIS-AWS-v1.4-Level1.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cis_aws_benchmark_level_1.html
+Operational Best Practices for CIS AWS Foundations Benchmark v1.4 Level 2,Operational-Best-Practices-for-CIS-AWS-v1.4-Level2.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cis_aws_benchmark_level_2.html
+Operational Best Practices for CIS Critical Security Controls v8 IG1,Operational-Best-Practices-for-CIS-Critical-Security-Controls-v8-IG1.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cis-critical-security-controls-v8.html
+Operational Best Practices for CIS Critical Security Controls v8 IG2,Operational-Best-Practices-for-CIS-Critical-Security-Controls-v8-IG2.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cis-critical-security-controls-v8-ig2.html
+Operational Best Practices for CIS Critical Security Controls v8 IG3,Operational-Best-Practices-for-CIS-Critical-Security-Controls-v8-IG3.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cis-critical-security-controls-v8-ig3.html
+Operational Best Practices for CIS Top 20,Operational-Best-Practices-for-CIS-Top20.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cis_top_20.html
+Operational Best Practices for CIS,Operational-Best-Practices-for-CIS.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cis_top_20.html
+Operational Best Practices for CISA Cyber Essentials,Operational-Best-Practices-for-CISA-Cyber-Essentials.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cisa-ce.html
+Operational Best Practices for Criminal Justice Information Services (CJIS),Operational-Best-Practices-for-CJIS.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cjis.html
+Operational Best Practices for CMMC 2.0 Level 1,Operational-Best-Practices-for-CMMC-2.0-Level-1.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cmmc_2.0_level_1.html
+Operational Best Practices for CMMC 2.0 Level 2,Operational-Best-Practices-for-CMMC-2.0-Level-2.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cmmc_2.0_level_2.html
+Operational Best Practices for Compute Services,Operational-Best-Practices-for-Compute-Services.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-Compute-Services.html
+Operational Best Practices for Data Resiliency,Operational-Best-Practices-for-Data-Resiliency.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-Data-Resiliency.html
+Operational Best Practices for Databases Services,Operational-Best-Practices-for-Database-Services.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-Databases-Services.html
+Operational Best Practices for Data Lakes and Analytics Services,Operational-Best-Practices-for-Datalakes-and-Analytics-Services.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-Datalakes-and-Analytics-Services.html
+Operational Best Practices for DevOps,Operational-Best-Practices-for-DevOps.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-DevOps.html
+Operational Best Practices for EC2,Operational-Best-Practices-for-EC2.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-EC2.html
+Operational Best Practices for Encryption and Key Management,Operational-Best-Practices-for-Encryption-and-Keys.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-Encryption-and-Keys.html
+Operational Best Practices for ENISA Cybersecurity guide for SMEs,Operational-Best-Practices-for-ENISA-Cybersecurity-Guide.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-enisa-cybersecurity-guide-for-smes.html
+Operational Best Practices for Esquema Nacional de Seguridad (ENS) Low,Operational-Best-Practices-for-CCN-ENS-Low.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-ens-low.html
+Operational Best Practices for Esquema Nacional de Seguridad (ENS) Medium,Operational-Best-Practices-for-CCN-ENS-Medium.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-ens-medium.html
+Operational Best Practices for Esquema Nacional de Seguridad (ENS) High,Operational-Best-Practices-for-CCN-ENS-High.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-ens_high.html
+Operational Best Practices for FDA Title 21 CFR Part 11,Operational-Best-Practices-for-FDA-21CFR-Part-11.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-FDA-21CFR-Part-11.html
+Operational Best Practices for FedRAMP(Low),Operational-Best-Practices-for-FedRAMP-Low.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-fedramp-low.html
+Operational Best Practices for FedRAMP(Moderate),Operational-Best-Practices-for-FedRAMP-Moderate.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-fedramp-moderate.html
+Operational Best Practices for FedRAMP (High Part 1),Operational-Best-Practices-for-FedRAMP-HighPart1.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-fedramp-high-part-1.html
+Operational Best Practices for FedRAMP (High Part 2),Operational-Best-Practices-for-FedRAMP-HighPart2.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-fedramp-high-part-2.html
+Operational Best Practices for FedRAMP,Operational-Best-Practices-for-FedRAMP.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-fedramp-moderate.html
+Operational Best Practices for FFIEC,Operational-Best-Practices-for-FFIEC.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-ffiec.html
+Operational Best Practices for Germany Cloud Computing Compliance Criteria Catalog (C5),Operational-Best-Practices-for-Germany-C5.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-germany-c5.html
+Operational Best Practices for Gramm Leach Bliley Act (GLBA),Operational-Best-Practices-for-Gramm-Leach-Bliley-Act.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-gramm-leach-bliley-act.html
+Operational Best Practices for GxP EU Annex 11,Operational-Best-Practices-for-GxP-EU-Annex-11.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-gxp-eu-annex-11.html
+Operational Best Practices for HIPAA Security,Operational-Best-Practices-for-HIPAA-Security.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-hipaa_security.html
+Operational Best Practices for IRS 1075,Operational-Best-Practices-for-IRS-1075.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-irs-1075.html
+Operational Best Practices for K-ISMS,Operational-Best-Practices-for-KISMS.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-k-isms.html
+Operational Best Practices for K-ISMS (Conformance Pack),Operational-Best-Practices-for-KISMS-cpack.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-k-isms.html
+Operational Best Practices for Load Balancing,Operational-Best-Practices-for-Load-Balancing.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-load-balancing.html
+Operational Best Practices for Logging,Operational-Best-Practices-for-Logging.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-logging.html
+Operational Best Practices for Management and Governance Services,Operational-Best-Practices-for-Management-Governance-Services.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-Management-and-Governance-Services.html
+Operational Best Practices for MAS Notice 655,Operational-Best-Practices-for-MAS-Notice-655.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-mas_notice_655.html
+Operational Best Practices for MAS TRMG,Operational-Best-Practices-for-MAS-TRMG.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-mas-trmg.html
+Operational Best Practices for Monitoring,Operational-Best-Practices-for-Monitoring.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-monitoring.html
+Operational Best Practices for NBC TRMG,Operational-Best-Practices-for-NBC-TRMG.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-nbc-trmg.html
+Operational Best Practices for NERC CIP BCSI,Operational-Best-Practices-for-NERC-CIP-BCSI.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-nerc.html
+Operational Best Practices for NERC CIP,Operational-Best-Practices-for-NERC-CIP.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-nerc.html
+Operational Best Practices for NCSC Cloud Security Principles,Operational-Best-Practices-for-NCSC-CloudSec-Principles.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-ncsc.html
+Operational Best Practices for NCSC Cyber Assessment Framework,Operational-Best-Practices-for-NCSC-CAF.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-ncsc_cafv3.html
+Operational Best Practices for Networking and Content Delivery Services,Operational-Best-Practices-For-Networking-and-Content-Delivery-Services.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-Networking-and-Content-Delivery-Services.html
+Operational Best Practices for Networking Services,Operational-Best-Practices-for-Networking-Services.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-Networking-and-Content-Delivery-Services.html
+Operational Best Practices for NIST 800-53 rev 4,Operational-Best-Practices-for-NIST-800-53-rev-4.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-nist-800-53_rev_4.html
+Operational Best Practices for NIST 800-53 rev 5,Operational-Best-Practices-for-NIST-800-53-rev-5.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-nist-800-53_rev_5.html
+Operational Best Practices for NIST 800 171,Operational-Best-Practices-for-NIST-800-171.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-nist_800-171.html
+Operational Best Practices for NIST 800 172,Operational-Best-Practices-for-NIST-800-172.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-nist_800-172.html
+Operational Best Practices for NIST 800 181,Operational-Best-Practices-For-NIST-800-181.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-nist_800-181.html
+Operational Best Practices for NIST 1800 25,Operational-Best-Practices-for-NIST-1800-25.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-nist_1800_25.html
+Operational Best Practices for NIST CSF,Operational-Best-Practices-for-NIST-CSF.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-nist-csf.html
+Operational Best Practices for NIST Privacy Framework v1.0,Operational-Best-Practices-for-NIST-Privacy-Framework.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-nist_privacy_framework.html
+Operational Best Practices for NYDFS 23,Operational-Best-Practices-for-NYDFS-23-NYCRR-500.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-us_nydfs.html
+Operational Best Practices for NZISM 3.8 - Foundation,Operational-Best-Practices-for-NZISM-Foundation.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-nzism.html
+Operational Best Practices for NZISM 3.8 - Extension,Operational-Best-Practices-for-NZISM-Extension.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-nzism.html
+Operational Best Practices for NZISM 3.8 - NZ Transition,Operational-Best-Practices-for-NZISM-NZTransition.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-nzism.html
+Operational Best Practices for PCI DSS 3.2.1,Operational-Best-Practices-for-PCI-DSS.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-pci-dss.html
+Operational Best Practices for PCI DSS 4.0 (Excluding global resource types),Operational-Best-Practices-for-PCI-DSS-v4.0-excluding-global-resourcetypes.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-pci-dss-v4-excluding-global-resource-types.html
+Operational Best Practices for PCI DSS 4.0 (Including global resource types),Operational-Best-Practices-for-PCI-DSS-v4.0-including-global-resourcetypes.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-pci-dss-v4-including-global-resource-types.html
+Operational Best Practices for Publicly Accessible Resources,Operational-Best-Practices-for-Publicly-Accessible-Resources.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-Publicly-Accessible-Resources.html
+Operational Best Practices for RBI Cyber Security Framework for UCBs,Operational-Best-Practices-for-RBI-Basic-Cyber-Security-Framework.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-rbi-bcsf-ucb.html
+Operational Best Practices for RBI MD-ITF,Operational-Best-Practices-for-RBI-MasterDirection.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-rbi-md-itf.html
+Operational Best Practices for Security Identity and Compliance Services,Operational-Best-Practices-For-Security-Identity-and-Compliance-Services.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-Security-Identity-and-Compliance-Services.html
+Operational Best Practices for Security Services,Operational-Best-Practices-for-Security-Services.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-Security-Identity-and-Compliance-Services.html
+Operational Best Practices for Serverless,Operational-Best-Practices-for-Serverless.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-serverless.html
+Operational Best Practices for Storage Services,Operational-Best-Practices-for-Storage-Services.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-Storage-Services.html
+Operational Best Practices for SWIFT CSP,Operational-Best-Practices-for-SWIFT-CSP.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-swift-csp.html
+Operational Best Practices for CIS AWS v1.3 Level 1,Operational-Best-Practices-for-CIS-AWS-v1.3-Level1.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cis_aws_benchmark_level_1.html
+Operational Best Practices for CIS AWS v1.3 Level 2,Operational-Best-Practices-for-CIS-AWS-v1.3-Level2.yaml,https://docs.aws.amazon.com/config/latest/developerguide/operational-best-practices-for-cis_aws_benchmark_level_2.html
+Security Best Practices for Amazon Elastic Container Service (Amazon ECS),Security-Best-Practices-for-ECS.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-ECS.html
+Security Best Practices for Amazon Elastic File System (Amazon EFS),Security-Best-Practices-for-EFS.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-EFS.html
+Security Best Practices for Amazon Elastic Kubernetes Service (Amazon EKS),Security-Best-Practices-for-EKS.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-EKS.html
+Security Best Practices for Amazon CloudFront,Security-Best-Practices-for-CloudFront.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-CloudFront.html
+Security Best Practices for Amazon OpenSearch Service,Security-Best-Practices-for-Amazon-OpenSearch-Service.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-OpenSearch.html
+Security Best Practices for Amazon Redshift,Security-Best-Practices-for-Redshift.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-redshift.html
+Security Best Practices for Amazon Relational Database Service (Amazon RDS),Security-Best-Practices-for-RDS.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-RDS.html
+Security Best Practices for AWS Auto Scaling,Security-Best-Practices-for-AutoScaling.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-AutoScaling.html
+Security Best Practices for AWS CloudTrail,Security-Best-Practices-for-CloudTrail.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-CloudTrail.html
+Security Best Practices for AWS CodeBuild,Security-Best-Practices-for-CodeBuild.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-CodeBuild.html
+Security Best Practices for Amazon ECR,Security-Best-Practices-for-ECR.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-ECR.html
+Security Best Practices for AWS Lambda,Security-Best-Practices-for-Lambda.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-Lambda.html
+Security Best Practices for AWS Network Firewall,Security-Best-Practices-for-Network-Firewall.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-Network-Firewall.html
+Security Best Practices for Amazon SageMaker AI,Security-Best-Practices-for-SageMaker.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-SageMaker.html
+Security Best Practices for AWS Secrets Manager,Security-Best-Practices-for-Secrets-Manager.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-Secrets-Manager.html
+Security Best Practices for AWS WAF,Security-Best-Practices-for-AWS-WAF.yaml,https://docs.aws.amazon.com/config/latest/developerguide/security-best-practices-for-aws-waf.html
+Custom Conformance Pack (Example),custom-conformance-pack.yaml,https://docs.aws.amazon.com/config/latest/developerguide/conformance-pack-sample-templates.html
