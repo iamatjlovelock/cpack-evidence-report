@@ -1002,13 +1002,17 @@ def generate_summary_page(
                 ctrl_cell = ctrl_name if first else ""
                 first = False
 
-                # Link to gap report if available
-                if gap_report_link:
+                # Link to gap report if available (but not when no template available)
+                if gap_report_link and not no_template_available:
                     source_display = f'<a href="{gap_report_link}#{keyword_anchor}">{source_name}</a>'
                     status_badge = f'<a href="{gap_report_link}#{keyword_anchor}"><span class="badge missing">Missing</span></a>'
                 else:
                     source_display = source_name
-                    status_badge = '<span class="badge missing">Missing</span>'
+                    # When no template available, show "N/A" instead of "Missing"
+                    if no_template_available:
+                        status_badge = '<span class="badge not-applicable">N/A</span>'
+                    else:
+                        status_badge = '<span class="badge missing">Missing</span>'
 
                 if template_mode:
                     html_parts.append(f"""
