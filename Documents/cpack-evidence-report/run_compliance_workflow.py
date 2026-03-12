@@ -227,7 +227,38 @@ Example usage:
     else:
         framework_file = None
 
-    # Determine output prefix - prefer framework name from existing file if available
+    # Build region args early (needed for framework extraction)
+    region_args = ["-r", args.region] if args.region else []
+
+    # If framework doesn't exist yet, extract it NOW before determining output_prefix
+    # This ensures output_prefix is always based on framework name
+    needs_framework_extraction = (
+        not args.skip_extract and
+        not use_cached_framework and
+        framework_file and
+        not os.path.exists(framework_file)
+    )
+
+    if needs_framework_extraction:
+        print("\n" + "=" * 80)
+        print("STEP: Extract framework controls from AWS Audit Manager (early)")
+        print(f"Running: get_framework_controls.py {args.framework_id} -o {framework_file}")
+        print("=" * 80)
+        script_path = os.path.join(os.path.dirname(__file__), "get_framework_controls.py")
+        cmd = [get_python_executable(), script_path, args.framework_id, "-o", framework_file] + region_args
+        try:
+            result = subprocess.run(cmd, check=True)
+            if result.returncode != 0:
+                print("Error: Framework extraction failed", file=sys.stderr)
+                return 1
+        except subprocess.CalledProcessError as e:
+            print(f"Error: Framework extraction failed with return code {e.returncode}", file=sys.stderr)
+            return 1
+        except Exception as e:
+            print(f"Error extracting framework: {e}", file=sys.stderr)
+            return 1
+
+    # Now determine output prefix - framework file should exist if we extracted it
     if args.output_prefix:
         output_prefix = args.output_prefix
     elif framework_file and os.path.exists(framework_file):
@@ -304,17 +335,16 @@ Example usage:
     print(f"  HTML Extra Rules: {html_extra_rules}")
     print(f"  HTML Control Catalog: {html_control_catalog}")
 
-    # Build region args
-    region_args = ["-r", args.region] if args.region else []
-
     success = True
 
-    # Step 1: Extract framework controls
+    # Step 1: Extract framework controls (may have been done early for output_prefix)
     if args.skip_extract:
         print(f"\nSkipping Step 1: Using existing framework file: {framework_file}")
     elif use_cached_framework:
         print(f"\nSkipping Step 1: Using cached framework file: {framework_file}")
         print(f"  (use --refresh-framework to force re-download)")
+    elif needs_framework_extraction:
+        print(f"\nSkipping Step 1: Framework already extracted above")
     else:
         script_args = [args.framework_id, "-o", framework_file] + region_args
         if not run_script(
