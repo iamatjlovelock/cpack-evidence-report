@@ -497,10 +497,6 @@ def generate_summary_page(
             <h3>Framework Controls</h3>
             <div class="value">{summary.get('totalControls', 0)}</div>
         </div>
-        <div class="card">
-            <h3>Evidence Sources</h3>
-            <div class="value">{summary.get('totalEvidenceSources', 0)}</div>
-        </div>
         <div class="card compliant">
             <h3>Compliant Resources</h3>
             <div class="value">{summary.get('compliantResources', 0):,}</div>
