@@ -653,8 +653,13 @@ def generate_summary_page(
     # Conformance Pack Template Cross-Check
     if matching_templates:
         templates_html = ""
-        for template_name, rule_count in matching_templates:
-            templates_html += f"<li><strong>{escape_html(template_name)}</strong> — {rule_count} Config Rules</li>\n"
+        for item in matching_templates:
+            if len(item) == 3:
+                template_name, rule_count, yaml_path = item
+                templates_html += f'<li><a href="{escape_html(yaml_path)}"><strong>{escape_html(template_name)}</strong></a> — {rule_count} Config Rules</li>\n'
+            else:
+                template_name, rule_count = item
+                templates_html += f"<li><strong>{escape_html(template_name)}</strong> — {rule_count} Config Rules</li>\n"
 
         html_parts.append(f"""
     <div class="section">
@@ -1302,7 +1307,9 @@ def main():
                 yaml_files = find_template_yaml_files(template_name, yaml_folder)
                 for name, path in yaml_files:
                     rule_count = count_config_rules_in_template(path)
-                    matching_templates.append((name, rule_count))
+                    # Store relative path for the hyperlink
+                    rel_path = os.path.relpath(path, os.path.dirname(os.path.abspath(args.report_file)))
+                    matching_templates.append((name, rule_count, rel_path))
                     print(f"  Template cross-check: {name} has {rule_count} rules")
 
         # Summary page
