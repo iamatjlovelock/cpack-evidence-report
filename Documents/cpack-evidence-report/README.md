@@ -18,18 +18,68 @@ This toolkit generates detailed compliance reports by:
 - boto3 installed (`pip install boto3`)
 - pyyaml installed (`pip install pyyaml`) - required for `extract_conformance_pack_rules.py`
 
-## Quick Start
+## Two Operational Modes
 
-### Run Full Workflow
+The workflow supports two modes of operation:
+
+### 1. Live Compliance Mode (Default)
+
+Use this mode when you have a conformance pack deployed in your AWS account and want to generate compliance reports with actual resource evaluation results.
 
 ```bash
 python run_compliance_workflow.py \
   --framework-id 1f50f59a-fc3c-4b99-be05-6a79cf3f9538 \
-  --conformance-pack PCI-DSS-CPAC \
-  --output-prefix "PCI_DSS_v4"
+  --conformance-pack PCI-DSS-CPAC
 ```
 
-This creates output in multiple locations:
+**What it does:**
+- Extracts controls from the Audit Manager framework
+- Maps framework evidence sources to deployed Config rules
+- Retrieves actual compliance evaluation results from the conformance pack
+- Fetches resource configurations for evaluated resources
+- Generates reports showing real compliance status per control
+
+**Use cases:**
+- Generating compliance evidence for audits
+- Reviewing current compliance posture
+- Identifying non-compliant resources that need remediation
+
+### 2. Template Analysis Mode
+
+Use this mode to analyze how well a conformance pack template covers a framework's requirements, without needing a deployed conformance pack.
+
+```bash
+python run_compliance_workflow.py \
+  --framework-id 1f50f59a-fc3c-4b99-be05-6a79cf3f9538 \
+  --conformance-pack none
+```
+
+**What it does:**
+- Extracts controls from the Audit Manager framework
+- Auto-detects the matching conformance pack YAML template
+- Analyzes which framework Config rules are included in the template
+- Identifies gaps (rules required by framework but missing from template)
+- Identifies extra rules (rules in template but not required by framework)
+
+**Use cases:**
+- Planning a conformance pack deployment before committing
+- Evaluating different conformance pack templates for a framework
+- Understanding coverage gaps between frameworks and available templates
+- Comparing what a template provides vs. what a framework requires
+
+The template is auto-detected using `conformance-packs/Framework-to-conformance-pack-template-mapping.csv`. Override with `--template path/to/template.yaml`.
+
+## Quick Start
+
+### Run Full Workflow (Live Mode)
+
+```bash
+python run_compliance_workflow.py \
+  --framework-id 1f50f59a-fc3c-4b99-be05-6a79cf3f9538 \
+  --conformance-pack PCI-DSS-CPAC
+```
+
+The output prefix defaults to the framework name (sanitized for filesystem). You can override with `--output-prefix`.
 
 **Cached Data (reused across runs):**
 ```
@@ -37,25 +87,26 @@ framework-controls/
 └── 1f50f59a-fc3c-4b99-be05-6a79cf3f9538_controls.json  # Cached by framework ID
 
 control-catalog/
-└── detective-controls.json  # All Config rules from Control Catalog
+└── detective-controls.json      # All Config rules from Control Catalog
+└── account-config-rules.json    # Config rules deployed in your account
 ```
 
 **Report Output:**
 ```
 compliance-dashboards/
-└── PCI_DSS_v4/
-    ├── PCI_DSS_v4_config_mapping.json        # Config rule mappings with descriptions
-    ├── compliance_report_PCI-DSS-CPAC.json   # Full compliance report
-    ├── compliance_report_PCI-DSS-CPAC_configurations.json  # Resource configurations
-    ├── compliance_report_PCI-DSS-CPAC_summary.html    # HTML summary page
-    ├── compliance_report_PCI-DSS-CPAC_evidence.html   # HTML evidence sources
-    ├── compliance_report_PCI-DSS-CPAC_resources.html  # HTML resource configs
-    ├── compliance_report_PCI-DSS-CPAC_gaps.html       # HTML gap analysis report
-    ├── compliance_report_PCI-DSS-CPAC_extra_rules.html # HTML extra rules report
-    └── compliance_report_PCI-DSS-CPAC_control_catalog.html # HTML control catalog
+└── PCI_DSS_v4_0/                              # Folder name from framework
+    ├── PCI_DSS_v4_0_config_mapping.json       # Config rule mappings
+    ├── PCI_DSS_v4_0_report.json               # Full compliance report
+    ├── PCI_DSS_v4_0_configurations.json       # Resource configurations
+    ├── PCI_DSS_v4_0_summary.html              # HTML summary page
+    ├── PCI_DSS_v4_0_evidence.html             # HTML evidence sources
+    ├── PCI_DSS_v4_0_resources.html            # HTML resource configs
+    ├── PCI_DSS_v4_0_gaps.html                 # HTML gap analysis report
+    ├── PCI_DSS_v4_0_extra_rules.html          # HTML extra rules report
+    └── PCI_DSS_v4_0_control_catalog.html      # HTML control catalog
 ```
 
-Framework controls and Control Catalog data are cached for reuse. Subsequent workflow runs automatically use cached files, avoiding redundant API calls.
+**Caching:** Framework controls, Control Catalog data, and account Config rules are cached for reuse. Subsequent runs automatically use cached files, avoiding redundant API calls. Use `--refresh-rules` to force refresh of Control Catalog and account Config rules caches.
 
 ### Generate HTML Reports
 
@@ -415,50 +466,39 @@ python run_compliance_workflow.py \
   --conformance-pack <pack> \
   --refresh-framework
 
+# Force refresh of Control Catalog and account Config rules caches
+python run_compliance_workflow.py \
+  --framework-id <id> \
+  --conformance-pack <pack> \
+  --refresh-rules
+
 # Skip HTML generation
 python run_compliance_workflow.py \
   --framework-id <id> \
   --conformance-pack <pack> \
-  --output-prefix <prefix> \
   --skip-html
 
 # Use existing files and only regenerate report + HTML
 python run_compliance_workflow.py \
   --conformance-pack PCI-DSS-CPAC \
-  --output-prefix "PCI_DSS_v4" \
   --framework-file "existing_controls.json" \
   --mapping-file "existing_mapping.json" \
   --skip-extract --skip-map
 
-# Template-only mode (analyze framework without deployed conformance pack)
+# Override auto-detected template in template analysis mode
 python run_compliance_workflow.py \
-  --framework-id 1f50f59a-fc3c-4b99-be05-6a79cf3f9538 \
+  --framework-id <id> \
   --conformance-pack none \
-  --output-prefix "PCI_DSS_v4_template"
+  --template path/to/custom-template.yaml
 ```
-
-### Template-Only Mode
-
-When you specify `--conformance-pack none`, the workflow runs in template-only mode:
-
-1. Automatically detects the conformance pack YAML template that corresponds to the framework
-2. Analyzes which Config rules from the framework are included in the template
-3. Generates reports showing the mapping between framework controls and template rules
-4. No resource compliance data is included (since no conformance pack is deployed)
-
-This mode is useful for:
-- Analyzing a framework before deploying a conformance pack
-- Understanding the gap between framework requirements and available templates
-- Planning conformance pack deployments
-
-The template is auto-detected using `conformance-packs/Framework-to-conformance-pack-template-mapping.csv` and the YAML files in `conformance-packs/conformance-pack-yamls/`. You can override the auto-detection with `--template path/to/template.yaml`.
 
 **Caching and Output:**
 - Framework controls are cached in `framework-controls/` by framework ID
 - Control Catalog data is cached in `control-catalog/detective-controls.json`
+- Account Config rules are cached in `control-catalog/account-config-rules.json`
 - Report output is placed in `compliance-dashboards/{output-prefix}/`
 - Use `--refresh-framework` to force fresh download of framework controls
-- Use `--refresh-catalog` to force fresh download of Control Catalog
+- Use `--refresh-rules` to force refresh of Control Catalog and account Config rules
 
 ## Troubleshooting
 
