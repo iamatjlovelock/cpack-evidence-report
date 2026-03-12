@@ -56,7 +56,7 @@ def load_framework_template_mapping(csv_path: str) -> dict:
     Load the framework-to-conformance-pack-template mapping from CSV.
 
     Args:
-        csv_path: Path to the CSV file
+        csv_path: Path to Framework-to-conformance-pack-template-mapping.csv
 
     Returns:
         Dict mapping framework name to template name(s)
@@ -72,6 +72,32 @@ def load_framework_template_mapping(csv_path: str) -> dict:
                     template = row[1].strip()
                     if framework and template and template != "-- No equivalent --":
                         mapping[framework] = template
+    except FileNotFoundError:
+        pass
+    return mapping
+
+
+def load_templates_to_yaml_mapping(csv_path: str) -> dict:
+    """
+    Load the template-to-YAML filename mapping from CSV.
+
+    Args:
+        csv_path: Path to Conformance pack templates.csv
+
+    Returns:
+        Dict mapping template name to YAML filename
+    """
+    mapping = {}
+    try:
+        with open(csv_path, "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader)  # Skip header
+            for row in reader:
+                if len(row) >= 2:
+                    template_name = row[0].strip()
+                    yaml_file = row[1].strip()
+                    if template_name and yaml_file:
+                        mapping[template_name] = yaml_file
     except FileNotFoundError:
         pass
     return mapping
@@ -128,13 +154,18 @@ def count_config_rules_in_template(yaml_path: str) -> int:
         return 0
 
 
-def find_template_yaml_files(template_name: str, yaml_folder: str) -> list:
+def find_template_yaml_files(template_name: str, yaml_folder: str, templates_to_yaml: dict = None) -> list:
     """
     Find all YAML files that match a conformance pack template.
+
+    Uses two-step lookup:
+    1. First check templates_to_yaml mapping for direct YAML filename
+    2. Fall back to fuzzy matching against filenames
 
     Args:
         template_name: The template name from the mapping
         yaml_folder: Folder containing YAML files
+        templates_to_yaml: Dict mapping template name to YAML filename
 
     Returns:
         List of tuples (filename, path) for matching files
@@ -143,7 +174,28 @@ def find_template_yaml_files(template_name: str, yaml_folder: str) -> list:
         return []
 
     matches = []
-    # Normalize template name for matching - remove spaces, lowercase
+
+    # Step 1: Try direct lookup in templates_to_yaml mapping
+    if templates_to_yaml:
+        # Try exact match
+        if template_name in templates_to_yaml:
+            yaml_file = templates_to_yaml[template_name]
+            yaml_path = os.path.join(yaml_folder, yaml_file)
+            if os.path.exists(yaml_path):
+                matches.append((yaml_file.replace(".yaml", ""), yaml_path))
+                return matches
+
+        # Try normalized match
+        template_normalized = re.sub(r'[^a-z0-9]', '', template_name.lower())
+        for key, yaml_file in templates_to_yaml.items():
+            key_normalized = re.sub(r'[^a-z0-9]', '', key.lower())
+            if template_normalized in key_normalized or key_normalized in template_normalized:
+                yaml_path = os.path.join(yaml_folder, yaml_file)
+                if os.path.exists(yaml_path):
+                    matches.append((yaml_file.replace(".yaml", ""), yaml_path))
+                    return matches
+
+    # Step 2: Fall back to fuzzy matching against YAML filenames
     template_normalized = re.sub(r'[^a-z0-9]', '', template_name.lower())
 
     for filename in os.listdir(yaml_folder):
@@ -1429,19 +1481,23 @@ def main():
         extra_rules_report_link = f"{link_prefix}_extra_rules.html"
         control_catalog_link = f"{link_prefix}_control_catalog.html"
 
-        # Look up conformance pack templates for this framework
+        # Look up conformance pack templates for this framework using two-step CSV lookup
         matching_templates = []
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        csv_path = os.path.join(script_dir, "conformance-packs", "Framework-to-conformance-pack-template-mapping.csv")
+        framework_mapping_csv = os.path.join(script_dir, "conformance-packs", "Framework-to-conformance-pack-template-mapping.csv")
+        templates_csv = os.path.join(script_dir, "conformance-packs", "Conformance pack templates.csv")
         yaml_folder = os.path.join(script_dir, "conformance-packs", "conformance-pack-yamls")
 
-        if os.path.exists(csv_path):
+        if os.path.exists(framework_mapping_csv):
             framework_name = compliance_report.get("frameworkName", "")
-            mapping = load_framework_template_mapping(csv_path)
-            template_name = find_matching_template(framework_name, mapping)
+            # Step 1: Load framework-to-template mapping
+            framework_mapping = load_framework_template_mapping(framework_mapping_csv)
+            template_name = find_matching_template(framework_name, framework_mapping)
 
             if template_name:
-                yaml_files = find_template_yaml_files(template_name, yaml_folder)
+                # Step 2: Load template-to-YAML mapping
+                templates_to_yaml = load_templates_to_yaml_mapping(templates_csv) if os.path.exists(templates_csv) else {}
+                yaml_files = find_template_yaml_files(template_name, yaml_folder, templates_to_yaml)
                 for name, path in yaml_files:
                     rule_count = count_config_rules_in_template(path)
                     # Store relative path for the hyperlink

@@ -185,25 +185,30 @@ def generate_template_compliance_report(
     return report
 
 
-def find_best_matching_template(framework_name: str, yaml_folder: str, csv_path: str = None) -> tuple:
+def find_best_matching_template(framework_name: str, yaml_folder: str, framework_mapping_csv: str = None, templates_csv: str = None) -> tuple:
     """
-    Find the best matching YAML template for a framework.
+    Find the best matching YAML template for a framework using two-step CSV lookup.
+
+    Step 1: Look up framework name in Framework-to-conformance-pack-template-mapping.csv
+            to get the conformance pack template name.
+    Step 2: Look up template name in Conformance pack templates.csv to get the YAML filename.
 
     Args:
         framework_name: Name of the framework
         yaml_folder: Folder containing YAML templates
-        csv_path: Path to framework-to-template mapping CSV (optional)
+        framework_mapping_csv: Path to Framework-to-conformance-pack-template-mapping.csv
+        templates_csv: Path to Conformance pack templates.csv
 
     Returns:
         Tuple of (template_name, yaml_path) or (None, None) if not found
     """
     import csv
 
-    # Try CSV mapping first
-    if csv_path and os.path.exists(csv_path):
-        mapping = {}
+    # Step 1: Load framework-to-template mapping
+    framework_to_template = {}
+    if framework_mapping_csv and os.path.exists(framework_mapping_csv):
         try:
-            with open(csv_path, "r", encoding="utf-8") as f:
+            with open(framework_mapping_csv, "r", encoding="utf-8") as f:
                 reader = csv.reader(f)
                 next(reader)  # Skip header
                 for row in reader:
@@ -211,26 +216,63 @@ def find_best_matching_template(framework_name: str, yaml_folder: str, csv_path:
                         fw = row[0].strip()
                         template = row[1].strip()
                         if fw and template and template != "-- No equivalent --":
-                            mapping[fw] = template
+                            framework_to_template[fw] = template
         except Exception:
             pass
 
-        # Try to find matching template from mapping
-        framework_normalized = re.sub(r'[^a-z0-9]', '', framework_name.lower())
-        for key, template in mapping.items():
-            key_normalized = re.sub(r'[^a-z0-9]', '', key.lower())
-            if key_normalized in framework_normalized or framework_normalized in key_normalized:
-                # Find the YAML file - check both directions since CSV names may differ from filenames
-                template_normalized = re.sub(r'[^a-z0-9]', '', template.lower())
-                for filename in os.listdir(yaml_folder):
-                    if filename.endswith(".yaml"):
-                        filename_normalized = re.sub(r'[^a-z0-9]', '', filename.lower().replace(".yaml", ""))
-                        if template_normalized in filename_normalized or filename_normalized in template_normalized:
-                            return (filename.replace(".yaml", ""), os.path.join(yaml_folder, filename))
+    # Step 2: Load template-to-YAML mapping
+    template_to_yaml = {}
+    if templates_csv and os.path.exists(templates_csv):
+        try:
+            with open(templates_csv, "r", encoding="utf-8") as f:
+                reader = csv.reader(f)
+                next(reader)  # Skip header
+                for row in reader:
+                    if len(row) >= 2:
+                        template_name = row[0].strip()
+                        yaml_file = row[1].strip()
+                        if template_name and yaml_file:
+                            template_to_yaml[template_name] = yaml_file
+        except Exception:
+            pass
 
-    # Fallback: Try direct name matching
+    # Try to find matching framework in step 1
+    framework_normalized = re.sub(r'[^a-z0-9]', '', framework_name.lower())
+    matched_template_name = None
+
+    for key, template in framework_to_template.items():
+        key_normalized = re.sub(r'[^a-z0-9]', '', key.lower())
+        if key_normalized in framework_normalized or framework_normalized in key_normalized:
+            matched_template_name = template
+            break
+
+    if matched_template_name:
+        # Step 2a: Try exact lookup in template-to-YAML mapping
+        if matched_template_name in template_to_yaml:
+            yaml_file = template_to_yaml[matched_template_name]
+            yaml_path = os.path.join(yaml_folder, yaml_file)
+            if os.path.exists(yaml_path):
+                return (yaml_file.replace(".yaml", ""), yaml_path)
+
+        # Step 2b: Try normalized lookup in template-to-YAML mapping
+        template_normalized = re.sub(r'[^a-z0-9]', '', matched_template_name.lower())
+        for template_key, yaml_file in template_to_yaml.items():
+            key_normalized = re.sub(r'[^a-z0-9]', '', template_key.lower())
+            if template_normalized in key_normalized or key_normalized in template_normalized:
+                yaml_path = os.path.join(yaml_folder, yaml_file)
+                if os.path.exists(yaml_path):
+                    return (yaml_file.replace(".yaml", ""), yaml_path)
+
+        # Step 2c: Fallback to fuzzy matching against YAML filenames
+        if os.path.exists(yaml_folder):
+            for filename in os.listdir(yaml_folder):
+                if filename.endswith(".yaml"):
+                    filename_normalized = re.sub(r'[^a-z0-9]', '', filename.lower().replace(".yaml", ""))
+                    if template_normalized in filename_normalized or filename_normalized in template_normalized:
+                        return (filename.replace(".yaml", ""), os.path.join(yaml_folder, filename))
+
+    # Final fallback: Try direct framework name matching against YAML filenames
     if os.path.exists(yaml_folder):
-        framework_normalized = re.sub(r'[^a-z0-9]', '', framework_name.lower())
         for filename in os.listdir(yaml_folder):
             if filename.endswith(".yaml"):
                 filename_normalized = re.sub(r'[^a-z0-9]', '', filename.lower().replace(".yaml", ""))
@@ -264,8 +306,13 @@ def main():
         default=None
     )
     parser.add_argument(
-        "--csv-mapping",
-        help="Path to framework-to-template mapping CSV",
+        "--framework-mapping-csv",
+        help="Path to Framework-to-conformance-pack-template-mapping.csv",
+        default=None
+    )
+    parser.add_argument(
+        "--templates-csv",
+        help="Path to Conformance pack templates.csv",
         default=None
     )
 
@@ -281,7 +328,8 @@ def main():
         # Determine YAML template
         script_dir = os.path.dirname(os.path.abspath(__file__))
         yaml_folder = args.yaml_folder or os.path.join(script_dir, "conformance-packs", "conformance-pack-yamls")
-        csv_path = args.csv_mapping or os.path.join(script_dir, "conformance-packs", "Framework-to-conformance-pack-template-mapping.csv")
+        framework_mapping_csv = args.framework_mapping_csv or os.path.join(script_dir, "conformance-packs", "Framework-to-conformance-pack-template-mapping.csv")
+        templates_csv = args.templates_csv or os.path.join(script_dir, "conformance-packs", "Conformance pack templates.csv")
 
         if args.template:
             template_path = args.template
@@ -289,7 +337,7 @@ def main():
         else:
             print(f"Auto-detecting template for framework...")
             template_name, template_path = find_best_matching_template(
-                framework_name, yaml_folder, csv_path
+                framework_name, yaml_folder, framework_mapping_csv, templates_csv
             )
             if not template_path:
                 print("Error: Could not find matching template for framework", file=sys.stderr)
