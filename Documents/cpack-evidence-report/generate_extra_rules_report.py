@@ -38,6 +38,44 @@ def make_anchor_id(text: str) -> str:
     return result
 
 
+def load_rule_details_from_file(config_rules_file: str, rule_names: list) -> dict:
+    """
+    Load rule details from a cached Config rules JSON file.
+
+    Args:
+        config_rules_file: Path to the cached config rules file
+        rule_names: List of rule names to filter
+
+    Returns:
+        Dict mapping rule name to rule details
+    """
+    rule_details = {}
+    rule_names_set = set(rule_names)
+
+    try:
+        with open(config_rules_file, "r", encoding="utf-8") as f:
+            cached_data = json.load(f)
+
+        for rule in cached_data.get("rules", []):
+            rule_name = rule.get("ConfigRuleName")
+            if rule_name in rule_names_set:
+                rule_details[rule_name] = {
+                    "configRuleName": rule_name,
+                    "description": rule.get("Description", ""),
+                    "sourceIdentifier": rule.get("SourceIdentifier", ""),
+                    "sourceOwner": rule.get("SourceOwner", ""),
+                    "configRuleArn": rule.get("ConfigRuleArn", ""),
+                    "configRuleState": rule.get("ConfigRuleState", "")
+                }
+
+    except FileNotFoundError:
+        print(f"  Warning: Config rules cache not found: {config_rules_file}", file=sys.stderr)
+    except Exception as e:
+        print(f"  Warning: Could not load config rules cache: {e}", file=sys.stderr)
+
+    return rule_details
+
+
 def get_rule_details(rule_names: list, region: str = None) -> dict:
     """
     Get details for Config rules from the AWS Config API.
@@ -446,6 +484,11 @@ def main():
         help="Path to cached Control Catalog JSON file (avoids API calls)",
         default=None
     )
+    parser.add_argument(
+        "--config-rules-file",
+        help="Path to cached Config rules JSON file (avoids API calls)",
+        default=None
+    )
 
     args = parser.parse_args()
 
@@ -458,9 +501,13 @@ def main():
         extra_rules = compliance_report.get("conformancePackRulesNotInFramework", [])
         print(f"  Found {len(extra_rules)} extra rules in conformance pack")
 
-        # Get rule details from AWS Config API
-        print("Fetching rule details from AWS Config...")
-        rule_details = get_rule_details(extra_rules, args.region)
+        # Get rule details - prefer cached file over API call
+        if args.config_rules_file:
+            print(f"Loading rule details from cache: {args.config_rules_file}")
+            rule_details = load_rule_details_from_file(args.config_rules_file, extra_rules)
+        else:
+            print("Fetching rule details from AWS Config...")
+            rule_details = get_rule_details(extra_rules, args.region)
         print(f"  Retrieved details for {len(rule_details)} rules")
 
         # Get Control Catalog descriptions for better rule descriptions

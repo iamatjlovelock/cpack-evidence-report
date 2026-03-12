@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 FRAMEWORK_CONTROLS_FOLDER = "framework-controls"
 CONTROL_CATALOG_FOLDER = "control-catalog"
 CONTROL_CATALOG_FILE = "detective-controls.json"
+CONFIG_RULES_CACHE_FILE = "account-config-rules.json"
 COMPLIANCE_DASHBOARDS_FOLDER = "compliance-dashboards"
 
 
@@ -134,9 +135,9 @@ Example usage:
         help="Force re-download of framework controls even if cached version exists"
     )
     parser.add_argument(
-        "--refresh-catalog",
+        "--refresh-rules",
         action="store_true",
-        help="Force re-download of Control Catalog even if cached version exists"
+        help="Force re-download of Control Catalog and Config rules caches"
     )
     parser.add_argument(
         "--skip-map",
@@ -218,9 +219,11 @@ Example usage:
         os.makedirs(CONTROL_CATALOG_FOLDER)
         print(f"Created control catalog folder: {CONTROL_CATALOG_FOLDER}")
 
-    # Determine Control Catalog cache path
+    # Determine Control Catalog and Config rules cache paths
     cached_catalog_file = os.path.join(CONTROL_CATALOG_FOLDER, CONTROL_CATALOG_FILE)
-    use_cached_catalog = os.path.exists(cached_catalog_file) and not args.refresh_catalog
+    cached_config_rules_file = os.path.join(CONTROL_CATALOG_FOLDER, CONFIG_RULES_CACHE_FILE)
+    use_cached_catalog = os.path.exists(cached_catalog_file) and not args.refresh_rules
+    use_cached_config_rules = os.path.exists(cached_config_rules_file) and not args.refresh_rules
 
     # Determine framework file path
     # Priority: 1) --framework-file argument, 2) cached file in framework-controls folder
@@ -278,6 +281,7 @@ Example usage:
     if not template_mode:
         print(f"  Resource Configs: {configs_file}")
     print(f"  Control Catalog: {cached_catalog_file}")
+    print(f"  Config Rules Cache: {cached_config_rules_file}")
     print(f"  HTML Summary: {html_summary}")
     print(f"  HTML Evidence: {html_evidence}")
     if not template_mode:
@@ -310,7 +314,7 @@ Example usage:
     # Step 2: Export Control Catalog (needed for descriptions in map_config_rules)
     if use_cached_catalog:
         print(f"\nSkipping Step 2: Using cached Control Catalog: {cached_catalog_file}")
-        print(f"  (use --refresh-catalog to force re-download)")
+        print(f"  (use --refresh-rules to force re-download)")
     else:
         script_args = ["-o", cached_catalog_file] + region_args
         if not run_script(
@@ -321,9 +325,16 @@ Example usage:
             print("\nWorkflow failed at Step 2: Control Catalog export", file=sys.stderr)
             return 1
 
-    # Step 3: Map Config rules
+    # Step 3: Map Config rules (and cache account's Config rules)
     if not args.skip_map:
-        script_args = [framework_file, "-o", mapping_file, "--catalog-file", cached_catalog_file] + region_args
+        script_args = [framework_file, "-o", mapping_file, "--catalog-file", cached_catalog_file]
+        if use_cached_config_rules:
+            print(f"\n  Using cached Config rules: {cached_config_rules_file}")
+            print(f"  (use --refresh-rules to force re-download)")
+            script_args.extend(["--config-rules-file", cached_config_rules_file])
+        else:
+            script_args.extend(["--save-config-rules", cached_config_rules_file])
+        script_args.extend(region_args)
         if not run_script(
             "map_config_rules.py",
             script_args,
@@ -449,7 +460,13 @@ Example usage:
     if not args.skip_html:
         summary_link = os.path.basename(html_summary)
         control_catalog_link = os.path.basename(html_control_catalog)
-        script_args = [report_file, "-o", html_extra_rules, "--summary-link", summary_link, "--control-catalog-link", control_catalog_link, "--catalog-file", cached_catalog_file] + region_args
+        script_args = [
+            report_file, "-o", html_extra_rules,
+            "--summary-link", summary_link,
+            "--control-catalog-link", control_catalog_link,
+            "--catalog-file", cached_catalog_file,
+            "--config-rules-file", cached_config_rules_file
+        ] + region_args
         if not run_script(
             "generate_extra_rules_report.py",
             script_args,
@@ -479,11 +496,15 @@ Example usage:
         generated_files.append(("Compliance Report", report_file))
     if not args.skip_configs and not template_mode and configs_file:
         generated_files.append(("Resource Configurations", configs_file))
-    # Control Catalog is always exported early (Step 2)
+    # Control Catalog and Config rules caches
     if use_cached_catalog:
         generated_files.append(("Control Catalog (cached)", cached_catalog_file))
     else:
         generated_files.append(("Control Catalog", cached_catalog_file))
+    if use_cached_config_rules:
+        generated_files.append(("Config Rules (cached)", cached_config_rules_file))
+    else:
+        generated_files.append(("Config Rules", cached_config_rules_file))
     if not args.skip_html:
         generated_files.append(("HTML Summary", html_summary))
         generated_files.append(("HTML Evidence", html_evidence))

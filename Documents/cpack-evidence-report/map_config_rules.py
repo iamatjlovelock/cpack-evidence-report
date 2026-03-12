@@ -9,6 +9,7 @@ import argparse
 import json
 import sys
 from collections import defaultdict
+from datetime import datetime, timezone
 
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
@@ -86,13 +87,79 @@ def get_control_catalog_descriptions(region: str = None) -> dict:
     return descriptions
 
 
-def get_all_config_rules(region: str = None, catalog_descriptions: dict = None) -> dict:
+def load_config_rules_from_file(config_rules_file: str, catalog_descriptions: dict = None) -> dict:
+    """
+    Load Config rules from a cached JSON file.
+
+    Args:
+        config_rules_file: Path to the cached config rules file
+        catalog_descriptions: Descriptions from Controls Catalog (optional)
+
+    Returns:
+        Dictionary mapping SourceIdentifier to list of Config rules
+    """
+    rules_by_identifier = defaultdict(list)
+    catalog_descriptions = catalog_descriptions or {}
+
+    try:
+        print(f"Loading Config rules from cache: {config_rules_file}")
+        with open(config_rules_file, "r", encoding="utf-8") as f:
+            cached_data = json.load(f)
+
+        rules_list = cached_data.get("rules", [])
+        for rule in rules_list:
+            source_identifier = rule.get("SourceIdentifier", "")
+            if source_identifier:
+                # Update description from catalog if available
+                if source_identifier in catalog_descriptions:
+                    rule["Description"] = catalog_descriptions[source_identifier]
+                rules_by_identifier[source_identifier].append(rule)
+
+        print(f"  Found {sum(len(v) for v in rules_by_identifier.values())} Config rules")
+        print(f"  Covering {len(rules_by_identifier)} unique managed rule identifiers")
+
+    except FileNotFoundError:
+        print(f"  Warning: Config rules cache not found: {config_rules_file}")
+    except Exception as e:
+        print(f"  Warning: Could not load config rules cache: {e}")
+
+    return dict(rules_by_identifier)
+
+
+def save_config_rules_to_file(rules_by_identifier: dict, output_file: str):
+    """
+    Save Config rules to a JSON file for caching.
+
+    Args:
+        rules_by_identifier: Dictionary mapping SourceIdentifier to list of rules
+        output_file: Path to save the cache file
+    """
+    # Flatten the rules into a list
+    rules_list = []
+    for identifier, rules in rules_by_identifier.items():
+        rules_list.extend(rules)
+
+    cache_data = {
+        "exportedAt": datetime.now(timezone.utc).isoformat(),
+        "totalRules": len(rules_list),
+        "uniqueIdentifiers": len(rules_by_identifier),
+        "rules": rules_list
+    }
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(cache_data, f, indent=2)
+
+    print(f"  Saved Config rules cache to: {output_file}")
+
+
+def get_all_config_rules(region: str = None, catalog_descriptions: dict = None, save_to_file: str = None) -> dict:
     """
     Retrieve all Config rules and index them by SourceIdentifier.
 
     Args:
         region: AWS region (optional)
         catalog_descriptions: Descriptions from Controls Catalog (optional)
+        save_to_file: Path to save cache file (optional)
 
     Returns:
         Dictionary mapping SourceIdentifier to list of Config rules
@@ -129,6 +196,10 @@ def get_all_config_rules(region: str = None, catalog_descriptions: dict = None) 
 
     print(f"  Found {sum(len(v) for v in rules_by_identifier.values())} Config rules")
     print(f"  Covering {len(rules_by_identifier)} unique managed rule identifiers")
+
+    # Save to cache file if requested
+    if save_to_file:
+        save_config_rules_to_file(rules_by_identifier, save_to_file)
 
     return dict(rules_by_identifier)
 
@@ -181,7 +252,7 @@ def extract_config_evidence_sources(framework_data: dict) -> dict:
     return dict(config_sources)
 
 
-def map_evidence_to_rules(framework_file: str, region: str = None, catalog_file: str = None) -> dict:
+def map_evidence_to_rules(framework_file: str, region: str = None, catalog_file: str = None, config_rules_file: str = None, save_config_rules: str = None) -> dict:
     """
     Map framework evidence sources to Config rules.
 
@@ -189,6 +260,8 @@ def map_evidence_to_rules(framework_file: str, region: str = None, catalog_file:
         framework_file: Path to framework JSON file
         region: AWS region (optional)
         catalog_file: Path to cached Control Catalog file (optional, avoids API calls)
+        config_rules_file: Path to cached Config rules file (optional, avoids API calls)
+        save_config_rules: Path to save Config rules cache (optional)
 
     Returns:
         Mapping result dictionary
@@ -213,9 +286,12 @@ def map_evidence_to_rules(framework_file: str, region: str = None, catalog_file:
     else:
         catalog_descriptions = get_control_catalog_descriptions(region)
 
-    # Get Config rules from AWS
+    # Get Config rules - prefer cached file over API call
     print()
-    config_rules = get_all_config_rules(region, catalog_descriptions)
+    if config_rules_file:
+        config_rules = load_config_rules_from_file(config_rules_file, catalog_descriptions)
+    else:
+        config_rules = get_all_config_rules(region, catalog_descriptions, save_config_rules)
 
     # Build mapping
     print("\nMapping evidence sources to Config rules...")
@@ -326,11 +402,27 @@ def main():
         help="Path to cached Control Catalog JSON file (avoids API calls)",
         default=None
     )
+    parser.add_argument(
+        "--config-rules-file",
+        help="Path to cached Config rules JSON file (avoids API calls)",
+        default=None
+    )
+    parser.add_argument(
+        "--save-config-rules",
+        help="Path to save Config rules cache for future use",
+        default=None
+    )
 
     args = parser.parse_args()
 
     try:
-        mapping_result = map_evidence_to_rules(args.framework_file, args.region, args.catalog_file)
+        mapping_result = map_evidence_to_rules(
+            args.framework_file,
+            args.region,
+            args.catalog_file,
+            args.config_rules_file,
+            args.save_config_rules
+        )
 
         if args.stdout:
             print(json.dumps(mapping_result, indent=2))
