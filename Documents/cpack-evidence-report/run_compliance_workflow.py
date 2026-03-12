@@ -270,6 +270,9 @@ Example usage:
             # Sanitize framework name for use as folder name
             output_prefix = "".join(c if c.isalnum() or c in "._- " else "_" for c in framework_name)
             output_prefix = output_prefix.replace(" ", "_")
+            # Truncate to avoid Windows MAX_PATH issues (keep under 50 chars)
+            if len(output_prefix) > 50:
+                output_prefix = output_prefix[:50].rstrip("_")
         except Exception:
             output_prefix = args.conformance_pack if not template_mode else "template_analysis"
     elif template_mode:
