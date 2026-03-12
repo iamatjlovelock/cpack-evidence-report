@@ -610,7 +610,7 @@ def generate_control_catalog_html(
 
     <div class="summary-cards">
         <div class="card">
-            <h3>Total Rules</h3>
+            <h3>Rules in Framework and/or Conformance Pack</h3>
             <div class="value">{len(all_identifiers)}</div>
         </div>
         <div class="card">
