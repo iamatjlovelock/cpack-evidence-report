@@ -562,7 +562,13 @@ def generate_control_catalog_html(
             font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
         }}
         .toc-list a.not-in-catalog {{
+            color: #c53030;
+        }}
+        .toc-list a.not-mapped {{
             color: #dd6b20;
+        }}
+        .toc-list a.mapped {{
+            color: #22543d;
         }}
         @media (max-width: 900px) {{
             .toc-list {{
@@ -631,13 +637,28 @@ def generate_control_catalog_html(
         <div class="toc-list">
 """
 
-    # Add table of contents
+    # Helper function to check if a mapping is for the current framework
+    def check_is_current_framework(m):
+        fw = m.get("frameworkName", "").upper()
+        for char in "-. ()":
+            fw = fw.replace(char, "")
+        return current_framework_normalized in fw or fw in current_framework_normalized
+
+    # Add table of contents with color coding
     for identifier in sorted(all_identifiers):
         anchor = make_anchor_id(identifier)
-        if identifier in catalog_controls:
-            html_content += f'            <a href="#{anchor}">{escape_html(identifier)}</a>\n'
-        else:
+        if identifier not in catalog_controls:
+            # Red - not in catalog
             html_content += f'            <a href="#{anchor}" class="not-in-catalog">{escape_html(identifier)}</a>\n'
+        else:
+            control = catalog_controls.get(identifier, {})
+            mappings = control.get("mappings", [])
+            if any(check_is_current_framework(m) for m in mappings):
+                # Green - in catalog and mapped to this framework
+                html_content += f'            <a href="#{anchor}" class="mapped">{escape_html(identifier)}</a>\n'
+            else:
+                # Orange - in catalog but not mapped to this framework
+                html_content += f'            <a href="#{anchor}" class="not-mapped">{escape_html(identifier)}</a>\n'
 
     html_content += """
         </div>
@@ -645,12 +666,6 @@ def generate_control_catalog_html(
 """
 
     # Check if any controls have current framework mappings
-    def check_is_current_framework(m):
-        fw = m.get("frameworkName", "").upper()
-        for char in "-. ()":
-            fw = fw.replace(char, "")
-        return current_framework_normalized in fw or fw in current_framework_normalized
-
     has_current_framework_mappings = False
     for identifier in all_identifiers:
         control = catalog_controls.get(identifier, {})
