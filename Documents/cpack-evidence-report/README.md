@@ -277,6 +277,8 @@ python generate_control_catalog_report.py <compliance_report.json> -o control_ca
 **Key Features:**
 - Fetches comprehensive control details from AWS Control Catalog API
 - Includes rule name, description, ARN, severity, behavior, and governed resources
+- Shows deployed Config rule name(s) when available (in addition to the managed rule identifier)
+- Displays source badges indicating whether each rule is in the Framework and/or Conformance Pack Template
 - Fetches control mappings via ListControlMappings API showing which frameworks reference each rule
 - Color-coded quick navigation index:
   - **Green**: Rules in catalog and mapped to the current framework
@@ -347,8 +349,20 @@ python extract_conformance_pack_rules.py -i my-yamls -o my-rules
 
 The summary report includes a cross-check section that shows conformance pack templates associated with the framework. This uses:
 
-- `conformance-packs/Framework-to-conformance-pack-template-mapping.csv` - Maps Audit Manager frameworks to conformance pack template names
+- `conformance-packs/Framework-to-conformance-pack-template-mapping.csv` - Maps Audit Manager frameworks to conformance pack templates
 - `conformance-packs/conformance-pack-yamls/` - Downloaded YAML templates from AWS Config Rules repository
+
+### Framework-to-Template Mapping CSV Format
+
+The mapping CSV has the following columns:
+
+| Column | Description |
+|--------|-------------|
+| Audit Manager Framework | Framework name as shown in AWS Audit Manager |
+| Framework ID | UUID of the framework (used for exact matching) |
+| Conformance Pack Template name | Primary conformance pack template for this framework |
+| Other relevant Conformance packs | Additional templates that may be useful |
+| Notes | Additional information (e.g., "No Equivalent" for frameworks without templates) |
 
 The cross-check displays all matching templates with their Config rule counts. A note explains that the AWS Config API does not indicate which template was used when a conformance pack was deployed.
 
