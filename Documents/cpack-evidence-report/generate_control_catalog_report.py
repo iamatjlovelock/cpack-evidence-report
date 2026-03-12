@@ -296,6 +296,11 @@ def generate_control_catalog_html(
             if not any(is_current_framework(m) for m in mappings):
                 not_mapped_count += 1
 
+    # Compute counts for summary
+    total_rules = len(all_identifiers)
+    in_catalog_count = len([i for i in all_identifiers if i in catalog_controls])
+    not_in_catalog_count = len([i for i in all_identifiers if i not in catalog_controls])
+
     # Build navigation
     nav_html = ""
     if summary_link:
@@ -634,15 +639,15 @@ def generate_control_catalog_html(
     <div class="summary-cards">
         <div class="card">
             <h3>Total Rules</h3>
-            <div class="value">{len(all_identifiers)}</div>
+            <div class="value">{total_rules}</div>
         </div>
         <div class="card">
             <h3>In Catalog</h3>
-            <div class="value">{len([i for i in all_identifiers if i in catalog_controls])}</div>
+            <div class="value">{in_catalog_count}</div>
         </div>
         <div class="card">
             <h3>Not In Catalog</h3>
-            <div class="value">{len([i for i in all_identifiers if i not in catalog_controls])}</div>
+            <div class="value">{not_in_catalog_count}</div>
         </div>
         <div class="card">
             <h3>Not Mapped to Framework</h3>
@@ -653,9 +658,11 @@ def generate_control_catalog_html(
     <div class="info-box">
         <h3>What does this report show?</h3>
         <p>
-            This report contains detailed information from the AWS Control Catalog for each Config rule
-            referenced in the {framework_name} framework or deployed in the <strong>{conformance_pack}</strong>
-            conformance pack. The Control Catalog provides authoritative descriptions and metadata for AWS managed rules.
+            There were a total of <strong>{total_rules}</strong> unique rules that were either mapped in the
+            framework defined in Audit Manager or included in the Conformance Pack template. Of these,
+            <strong>{in_catalog_count}</strong> rules are referenced in the Controls Catalog and
+            <strong>{not_in_catalog_count}</strong> are not referenced. Of the <strong>{in_catalog_count}</strong>
+            that are referenced, Control Catalog does not map <strong>{not_mapped_count}</strong> of these to the framework.
         </p>
     </div>
 
