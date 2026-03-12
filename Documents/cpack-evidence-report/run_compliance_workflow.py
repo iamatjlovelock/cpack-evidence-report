@@ -475,12 +475,13 @@ Example usage:
         generated_files.append(("Config Mapping", mapping_file))
     if not args.skip_report:
         generated_files.append(("Compliance Report", report_file))
-    if not args.skip_configs:
+    if not args.skip_configs and not template_mode and configs_file:
         generated_files.append(("Resource Configurations", configs_file))
-    if not args.skip_html and not args.skip_configs:
+    if not args.skip_html:
         generated_files.append(("HTML Summary", html_summary))
         generated_files.append(("HTML Evidence", html_evidence))
-        generated_files.append(("HTML Resources", html_resources))
+        if not template_mode:
+            generated_files.append(("HTML Resources", html_resources))
     if not args.skip_html:
         if use_cached_catalog:
             generated_files.append(("Control Catalog (cached)", cached_catalog_file))
@@ -499,7 +500,7 @@ Example usage:
 
     print()
     print(f"Output folder: {os.path.abspath(output_folder)}")
-    if not args.skip_html and not args.skip_configs:
+    if not args.skip_html:
         print(f"\nOpen {html_summary} in a browser to view the compliance report.")
 
     return 0
