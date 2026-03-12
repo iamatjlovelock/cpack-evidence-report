@@ -102,7 +102,12 @@ Example usage:
     parser.add_argument(
         "--conformance-pack",
         required=True,
-        help="AWS Config conformance pack name. Run list_conformance_packs.py to generate a list of deployed Conformance packs"
+        help="AWS Config conformance pack name, or 'none' for template-only mode. Run list_conformance_packs.py to generate a list of deployed Conformance packs"
+    )
+    parser.add_argument(
+        "--template",
+        help="Path to conformance pack YAML template (for template-only mode, auto-detected if not specified)",
+        default=None
     )
     parser.add_argument(
         "--output-prefix",
@@ -168,6 +173,9 @@ Example usage:
 
     args = parser.parse_args()
 
+    # Check for template-only mode
+    template_mode = args.conformance_pack.lower() == "none"
+
     # Validate arguments
     if not args.skip_extract and not args.framework_id and not args.framework_file:
         parser.error("--framework-id is required unless --skip-extract or --framework-file is specified")
@@ -178,11 +186,14 @@ Example usage:
     if args.skip_map and not args.mapping_file:
         parser.error("--mapping-file is required when using --skip-map")
 
-    if args.skip_report and not args.report_file and not args.skip_configs:
+    if not template_mode and args.skip_report and not args.report_file and not args.skip_configs:
         parser.error("--report-file is required when using --skip-report (unless also using --skip-configs)")
 
     # Set output prefix
-    output_prefix = args.output_prefix or args.conformance_pack
+    if template_mode:
+        output_prefix = args.output_prefix or "template_analysis"
+    else:
+        output_prefix = args.output_prefix or args.conformance_pack
 
     # Create compliance-dashboards folder if needed
     if not os.path.exists(COMPLIANCE_DASHBOARDS_FOLDER):
@@ -228,11 +239,15 @@ Example usage:
     else:
         framework_file = os.path.join(output_folder, f"{output_prefix}_controls.json")
     mapping_file = args.mapping_file or os.path.join(output_folder, f"{output_prefix}_config_mapping.json")
-    report_file = args.report_file or os.path.join(output_folder, f"compliance_report_{args.conformance_pack}.json")
-    configs_file = os.path.join(output_folder, f"compliance_report_{args.conformance_pack}_configurations.json")
 
-    # HTML report files
-    html_prefix = os.path.join(output_folder, f"compliance_report_{args.conformance_pack}")
+    if template_mode:
+        report_file = args.report_file or os.path.join(output_folder, f"template_report_{output_prefix}.json")
+        configs_file = None  # No configs in template mode
+        html_prefix = os.path.join(output_folder, f"template_report_{output_prefix}")
+    else:
+        report_file = args.report_file or os.path.join(output_folder, f"compliance_report_{args.conformance_pack}.json")
+        configs_file = os.path.join(output_folder, f"compliance_report_{args.conformance_pack}_configurations.json")
+        html_prefix = os.path.join(output_folder, f"compliance_report_{args.conformance_pack}")
     html_summary = f"{html_prefix}_summary.html"
     html_evidence = f"{html_prefix}_evidence.html"
     html_resources = f"{html_prefix}_resources.html"
@@ -242,9 +257,14 @@ Example usage:
 
     print("\n" + "=" * 80)
     print("AWS COMPLIANCE REPORTING WORKFLOW")
+    if template_mode:
+        print("  (TEMPLATE-ONLY MODE)")
     print("=" * 80)
     print(f"Started at: {datetime.now(timezone.utc).isoformat()}")
-    print(f"Conformance Pack: {args.conformance_pack}")
+    if template_mode:
+        print(f"Mode: Template Analysis (no deployed conformance pack)")
+    else:
+        print(f"Conformance Pack: {args.conformance_pack}")
     if args.framework_id:
         print(f"Framework ID: {args.framework_id}")
     print(f"Output Folder: {output_folder}")
@@ -253,11 +273,13 @@ Example usage:
     print(f"  Framework Controls: {framework_file}")
     print(f"  Config Mapping: {mapping_file}")
     print(f"  Compliance Report: {report_file}")
-    print(f"  Resource Configs: {configs_file}")
+    if not template_mode:
+        print(f"  Resource Configs: {configs_file}")
     print(f"  Control Catalog: {cached_catalog_file}")
     print(f"  HTML Summary: {html_summary}")
     print(f"  HTML Evidence: {html_evidence}")
-    print(f"  HTML Resources: {html_resources}")
+    if not template_mode:
+        print(f"  HTML Resources: {html_resources}")
     print(f"  HTML Gap Report: {html_gaps}")
     print(f"  HTML Extra Rules: {html_extra_rules}")
     print(f"  HTML Control Catalog: {html_control_catalog}")
@@ -298,24 +320,40 @@ Example usage:
 
     # Step 3: Generate compliance report
     if not args.skip_report:
-        script_args = [
-            args.conformance_pack,
-            framework_file,
-            mapping_file,
-            "-o", report_file
-        ] + region_args
-        if not run_script(
-            "generate_compliance_report.py",
-            script_args,
-            "Generate compliance report from conformance pack"
-        ):
-            print("\nWorkflow failed at Step 3: Report generation", file=sys.stderr)
-            return 1
+        if template_mode:
+            # Template mode: Use template-based report generator
+            script_args = [framework_file, "-o", report_file]
+            if args.template:
+                script_args.extend(["--template", args.template])
+            if not run_script(
+                "generate_template_compliance_report.py",
+                script_args,
+                "Generate template-based compliance report (no deployed pack)"
+            ):
+                print("\nWorkflow failed at Step 3: Template report generation", file=sys.stderr)
+                return 1
+        else:
+            # Normal mode: Use conformance pack report generator
+            script_args = [
+                args.conformance_pack,
+                framework_file,
+                mapping_file,
+                "-o", report_file
+            ] + region_args
+            if not run_script(
+                "generate_compliance_report.py",
+                script_args,
+                "Generate compliance report from conformance pack"
+            ):
+                print("\nWorkflow failed at Step 3: Report generation", file=sys.stderr)
+                return 1
     else:
         print(f"\nSkipping Step 3: Using existing report file: {report_file}")
 
-    # Step 4: Get resource configurations
-    if not args.skip_configs:
+    # Step 4: Get resource configurations (skip in template mode)
+    if template_mode:
+        print(f"\nSkipping Step 4: No resource configurations in template mode")
+    elif not args.skip_configs:
         script_args = [report_file, "-o", configs_file] + region_args
         if not run_script(
             "get_resource_configurations.py",
@@ -328,7 +366,20 @@ Example usage:
         print(f"\nSkipping Step 4: Resource configuration retrieval")
 
     # Step 5: Generate HTML reports
-    if not args.skip_html and not args.skip_configs:
+    if template_mode:
+        # Template mode: Generate HTML without configs
+        if not args.skip_html:
+            script_args = [report_file, "-o", html_prefix, "--template-mode"]
+            if not run_script(
+                "generate_html_report.py",
+                script_args,
+                "Generate HTML reports (template mode - no resource data)"
+            ):
+                print("\nWorkflow failed at Step 5: HTML report generation", file=sys.stderr)
+                return 1
+        else:
+            print(f"\nSkipping Step 5: HTML report generation")
+    elif not args.skip_html and not args.skip_configs:
         script_args = [report_file, configs_file, "-o", html_prefix]
         if not run_script(
             "generate_html_report.py",

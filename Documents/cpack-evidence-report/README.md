@@ -429,7 +429,29 @@ python run_compliance_workflow.py \
   --framework-file "existing_controls.json" \
   --mapping-file "existing_mapping.json" \
   --skip-extract --skip-map
+
+# Template-only mode (analyze framework without deployed conformance pack)
+python run_compliance_workflow.py \
+  --framework-id 1f50f59a-fc3c-4b99-be05-6a79cf3f9538 \
+  --conformance-pack none \
+  --output-prefix "PCI_DSS_v4_template"
 ```
+
+### Template-Only Mode
+
+When you specify `--conformance-pack none`, the workflow runs in template-only mode:
+
+1. Automatically detects the conformance pack YAML template that corresponds to the framework
+2. Analyzes which Config rules from the framework are included in the template
+3. Generates reports showing the mapping between framework controls and template rules
+4. No resource compliance data is included (since no conformance pack is deployed)
+
+This mode is useful for:
+- Analyzing a framework before deploying a conformance pack
+- Understanding the gap between framework requirements and available templates
+- Planning conformance pack deployments
+
+The template is auto-detected using `Framework-to-conformance-pack-template-mapping.csv` and the YAML files in `conformance-pack-yamls/`. You can override the auto-detection with `--template path/to/template.yaml`.
 
 **Caching and Output:**
 - Framework controls are cached in `framework-controls/` by framework ID

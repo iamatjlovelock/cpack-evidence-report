@@ -412,13 +412,15 @@ def get_common_styles() -> str:
     """
 
 
-def generate_navigation(active_page: str, prefix: str) -> str:
+def generate_navigation(active_page: str, prefix: str, template_mode: bool = False) -> str:
     """Generate navigation bar HTML."""
     pages = [
         ("summary", "Summary Report"),
         ("evidence", "Evidence Sources"),
-        ("resources", "Resources")
     ]
+    # Only include Resources page if not in template mode
+    if not template_mode:
+        pages.append(("resources", "Resources"))
 
     nav_items = []
     for page_id, page_name in pages:
@@ -548,7 +550,8 @@ def generate_summary_page(
     prefix: str,
     gap_report_link: str = None,
     extra_rules_report_link: str = None,
-    matching_templates: list = None
+    matching_templates: list = None,
+    template_mode: bool = False
 ) -> str:
     """Generate the summary report HTML page."""
 
@@ -591,12 +594,33 @@ def generate_summary_page(
     </style>
 </head>
 <body>
-    {generate_navigation("summary", prefix)}
+    {generate_navigation("summary", prefix, template_mode)}
     {generate_page_header(framework_name, conformance_pack, generated_at)}
 """)
 
-    # Summary Cards
-    html_parts.append(f"""
+    # Summary Cards - different layout for template mode
+    if template_mode:
+        html_parts.append(f"""
+    <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+        <strong style="color: #0369a1;">Template Analysis Mode</strong>
+        <p style="color: #0369a1; margin: 5px 0 0 0; font-size: 14px;">
+            This report analyzes the framework against a conformance pack template. No deployed conformance pack was evaluated,
+            so resource compliance data is not available. Deploy the conformance pack to see actual compliance results.
+        </p>
+    </div>
+    <div class="summary-cards">
+        <div class="card">
+            <h3>Control Sets</h3>
+            <div class="value">{summary.get('totalControlSets', 0)}</div>
+        </div>
+        <div class="card">
+            <h3>Framework Controls</h3>
+            <div class="value">{summary.get('totalControls', 0)}</div>
+        </div>
+    </div>
+""")
+    else:
+        html_parts.append(f"""
     <div class="summary-cards">
         <div class="card">
             <h3>Control Sets</h3>
@@ -624,8 +648,34 @@ def generate_summary_page(
     </div>
 """)
 
-    # Evidence Sources Summary Card Row
-    html_parts.append(f"""
+    # Evidence Sources Summary Card Row - different labels for template mode
+    if template_mode:
+        html_parts.append(f"""
+    <div class="summary-cards">
+        <div class="card">
+            <h3>Config Rules in Framework</h3>
+            <div class="value">{total_config_rules}</div>
+        </div>
+        <div class="card">
+            <h3>In Template</h3>
+            <div class="value">{mapped_rules_count}</div>
+        </div>
+        <div class="card">
+            <h3>Missing from Template</h3>
+            <div class="value">{"<a href='" + gap_report_link + "'>" if gap_report_link else ""}{unmapped_rules_count}{"</a>" if gap_report_link else ""}</div>
+        </div>
+        <div class="card">
+            <h3>Rules in Template</h3>
+            <div class="value">{rules_in_pack_count}</div>
+        </div>
+        <div class="card">
+            <h3>Extra Rules in Template</h3>
+            <div class="value">{"<a href='" + extra_rules_report_link + "'>" if extra_rules_report_link else ""}{extra_rules_count}{"</a>" if extra_rules_report_link else ""}</div>
+        </div>
+    </div>
+""")
+    else:
+        html_parts.append(f"""
     <div class="summary-cards">
         <div class="card">
             <h3>Config Rules in Framework</h3>
@@ -710,7 +760,29 @@ def generate_summary_page(
         num_missing_rules = len(missing_rules)
         missing_class = "count-non-compliant" if num_missing_rules > 0 else "count-compliant"
 
-        html_parts.append(f"""
+        # Different table layout for template mode vs normal mode
+        if template_mode:
+            html_parts.append(f"""
+        <div class="control-set">
+            <div class="control-set-header">
+                <h3>{cs_name}</h3>
+                <div class="stats">
+                    {num_controls} controls |
+                    <span class="{missing_class}">{num_missing_rules} missing from template</span>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40%">Framework Control</th>
+                        <th style="width: 45%">Evidence Source (Config Rule)</th>
+                        <th style="width: 15%; text-align: center;">In Template</th>
+                    </tr>
+                </thead>
+                <tbody>
+""")
+        else:
+            html_parts.append(f"""
         <div class="control-set">
             <div class="control-set-header">
                 <h3>{cs_name}</h3>
@@ -746,7 +818,16 @@ def generate_summary_page(
 
             if not all_config_sources:
                 # Show control with no Config rule references
-                html_parts.append(f"""
+                if template_mode:
+                    html_parts.append(f"""
+                    <tr>
+                        <td>{ctrl_name}</td>
+                        <td style="color: #718096; font-style: italic;">No Config rules referenced</td>
+                        <td style="text-align: center;"><span class="badge not-applicable">N/A</span></td>
+                    </tr>
+""")
+                else:
+                    html_parts.append(f"""
                     <tr>
                         <td>{ctrl_name}</td>
                         <td style="color: #718096; font-style: italic;">No Config rules referenced</td>
@@ -760,29 +841,39 @@ def generate_summary_page(
             # First source row includes control name
             first = True
 
-            # Show mapped sources first
+            # Show mapped sources first (in template/pack)
             for source in mapped_sources:
                 # Use sourceName, fall back to keywordValue or configRuleName
                 source_name_raw = source.get("sourceName") or source.get("keywordValue") or source.get("configRuleName") or ""
                 source_name = escape_html(source_name_raw)
                 rule_name = source.get("configRuleName", "")
                 rule_anchor = make_anchor_id(rule_name)
-                comp_summary = source.get("complianceSummary", {})
-                compliant_count = comp_summary.get("compliant", 0)
-                non_compliant_count = comp_summary.get("nonCompliant", 0)
-
-                # Determine status badge
-                if non_compliant_count > 0:
-                    status_badge = '<span class="badge non-compliant">Issues</span>'
-                elif compliant_count > 0:
-                    status_badge = '<span class="badge compliant">Compliant</span>'
-                else:
-                    status_badge = '<span class="badge not-applicable">N/A</span>'
 
                 ctrl_cell = ctrl_name if first else ""
                 first = False
 
-                html_parts.append(f"""
+                if template_mode:
+                    html_parts.append(f"""
+                    <tr>
+                        <td>{ctrl_cell}</td>
+                        <td><a href="{prefix}_evidence.html#{rule_anchor}">{source_name}</a></td>
+                        <td style="text-align: center;"><span class="badge compliant">Yes</span></td>
+                    </tr>
+""")
+                else:
+                    comp_summary = source.get("complianceSummary", {})
+                    compliant_count = comp_summary.get("compliant", 0)
+                    non_compliant_count = comp_summary.get("nonCompliant", 0)
+
+                    # Determine status badge
+                    if non_compliant_count > 0:
+                        status_badge = '<span class="badge non-compliant">Issues</span>'
+                    elif compliant_count > 0:
+                        status_badge = '<span class="badge compliant">Compliant</span>'
+                    else:
+                        status_badge = '<span class="badge not-applicable">N/A</span>'
+
+                    html_parts.append(f"""
                     <tr>
                         <td>{ctrl_cell}</td>
                         <td><a href="{prefix}_evidence.html#{rule_anchor}">{source_name}</a></td>
@@ -792,7 +883,7 @@ def generate_summary_page(
                     </tr>
 """)
 
-            # Show missing sources (not in conformance pack)
+            # Show missing sources (not in template/pack)
             for source in missing_sources:
                 source_name_raw = source.get("sourceName") or source.get("keywordValue") or ""
                 source_name = escape_html(source_name_raw)
@@ -810,7 +901,16 @@ def generate_summary_page(
                     source_display = source_name
                     status_badge = '<span class="badge missing">Missing</span>'
 
-                html_parts.append(f"""
+                if template_mode:
+                    html_parts.append(f"""
+                    <tr>
+                        <td>{ctrl_cell}</td>
+                        <td>{source_display}</td>
+                        <td style="text-align: center;">{status_badge}</td>
+                    </tr>
+""")
+                else:
+                    html_parts.append(f"""
                     <tr>
                         <td>{ctrl_cell}</td>
                         <td>{source_display}</td>
@@ -843,7 +943,8 @@ def generate_evidence_page(
     compliance_report: dict,
     evidence_sources: dict,
     prefix: str,
-    control_catalog_link: str = None
+    control_catalog_link: str = None,
+    template_mode: bool = False
 ) -> str:
     """Generate the evidence sources HTML page."""
 
@@ -912,14 +1013,13 @@ def generate_evidence_page(
     </style>
 </head>
 <body>
-    {generate_navigation("evidence", prefix)}
+    {generate_navigation("evidence", prefix, template_mode)}
     {generate_page_header(framework_name, conformance_pack, generated_at)}
 
     <div class="section">
         <h2>Evidence Sources (AWS Config Rules)</h2>
         <p style="color: #718096; margin-bottom: 20px;">
-            {len(evidence_sources)} Config rules evaluated across the conformance pack.
-            Click on a resource to view its configuration.
+            {f"{len(evidence_sources)} Config rules mapped from the conformance pack template. This is a template analysis - no deployed conformance pack evaluations are available." if template_mode else f"{len(evidence_sources)} Config rules evaluated across the conformance pack. Click on a resource to view its configuration."}
         </p>
 """)
 
@@ -945,15 +1045,15 @@ def generate_evidence_page(
         keyword_anchor = make_anchor_id(keyword_raw)
         keyword_link = f'<a href="{control_catalog_link}#{keyword_anchor}">{keyword}</a>' if control_catalog_link and keyword_raw else keyword
 
-        html_parts.append(f"""
-        <div class="evidence-entry" id="{rule_anchor}">
-            <div class="evidence-header">
-                <div class="evidence-title">{source_name}</div>
-                {description_html}
-                <div class="evidence-rule" style="margin-top: 10px;">Rule: {escape_html(rule_name)}</div>
-                <div class="evidence-rule">Keyword: {keyword_link}</div>
+        # Build stats section (only show in non-template mode)
+        if template_mode:
+            stats_html = """
+            <div style="background: #f7fafc; border-radius: 6px; padding: 15px; margin: 15px 0; color: #718096; font-style: italic;">
+                Template mode: No resource evaluations available. Deploy this conformance pack to see compliance results.
             </div>
-
+"""
+        else:
+            stats_html = f"""
             <div class="evidence-stats">
                 <div class="evidence-stat compliant">
                     <div class="label">Compliant</div>
@@ -968,7 +1068,23 @@ def generate_evidence_page(
                     <div class="value" style="color: #718096;">{not_applicable_count}</div>
                 </div>
             </div>
+"""
 
+        html_parts.append(f"""
+        <div class="evidence-entry" id="{rule_anchor}">
+            <div class="evidence-header">
+                <div class="evidence-title">{source_name}</div>
+                {description_html}
+                <div class="evidence-rule" style="margin-top: 10px;">Rule: {escape_html(rule_name)}</div>
+                <div class="evidence-rule">Keyword: {keyword_link}</div>
+            </div>
+
+            {stats_html}
+""")
+
+        # Resource table (only show in non-template mode)
+        if not template_mode:
+            html_parts.append("""
             <table>
                 <thead>
                     <tr>
@@ -981,33 +1097,33 @@ def generate_evidence_page(
                 <tbody>
 """)
 
-        # Sort resources: non-compliant first, then by resource type and ID
-        resources = list(source.get("resources", {}).values())
-        resources.sort(key=lambda r: (
-            0 if r.get("complianceType") == "NON_COMPLIANT" else 1,
-            r.get("resourceType", ""),
-            r.get("resourceId", "")
-        ))
+            # Sort resources: non-compliant first, then by resource type and ID
+            resources = list(source.get("resources", {}).values())
+            resources.sort(key=lambda r: (
+                0 if r.get("complianceType") == "NON_COMPLIANT" else 1,
+                r.get("resourceType", ""),
+                r.get("resourceId", "")
+            ))
 
-        for resource in resources:
-            resource_key = resource.get("resourceKey", "")
-            resource_anchor = make_anchor_id(resource_key)
-            resource_type = escape_html(resource.get("resourceType", ""))
-            resource_id = escape_html(resource.get("resourceId", ""))
-            compliance_type = resource.get("complianceType", "")
-            annotation = escape_html(resource.get("annotation", "") or "")
+            for resource in resources:
+                resource_key = resource.get("resourceKey", "")
+                resource_anchor = make_anchor_id(resource_key)
+                resource_type = escape_html(resource.get("resourceType", ""))
+                resource_id = escape_html(resource.get("resourceId", ""))
+                compliance_type = resource.get("complianceType", "")
+                annotation = escape_html(resource.get("annotation", "") or "")
 
-            if len(annotation) > 100:
-                annotation = annotation[:100] + "..."
+                if len(annotation) > 100:
+                    annotation = annotation[:100] + "..."
 
-            if compliance_type == "COMPLIANT":
-                badge = '<span class="badge compliant">Compliant</span>'
-            elif compliance_type == "NON_COMPLIANT":
-                badge = '<span class="badge non-compliant">Non-Compliant</span>'
-            else:
-                badge = '<span class="badge not-applicable">N/A</span>'
+                if compliance_type == "COMPLIANT":
+                    badge = '<span class="badge compliant">Compliant</span>'
+                elif compliance_type == "NON_COMPLIANT":
+                    badge = '<span class="badge non-compliant">Non-Compliant</span>'
+                else:
+                    badge = '<span class="badge not-applicable">N/A</span>'
 
-            html_parts.append(f"""
+                html_parts.append(f"""
                     <tr>
                         <td class="mono">{resource_type}</td>
                         <td class="mono"><a href="{prefix}_resources.html#{resource_anchor}">{resource_id}</a></td>
@@ -1016,9 +1132,12 @@ def generate_evidence_page(
                     </tr>
 """)
 
-        html_parts.append("""
+            html_parts.append("""
                 </tbody>
             </table>
+""")
+
+        html_parts.append("""
         </div>
 """)
 
@@ -1253,24 +1372,42 @@ def main():
     )
     parser.add_argument(
         "configurations_file",
-        help="Path to resource configurations JSON file (from get_resource_configurations.py)"
+        nargs="?",
+        help="Path to resource configurations JSON file (from get_resource_configurations.py)",
+        default=None
     )
     parser.add_argument(
         "-o", "--output-prefix",
         help="Output file prefix (default: derived from report filename)",
         default=None
     )
+    parser.add_argument(
+        "--template-mode",
+        action="store_true",
+        help="Template mode: generate reports without resource configurations"
+    )
 
     args = parser.parse_args()
+
+    # Validate arguments
+    if not args.template_mode and not args.configurations_file:
+        parser.error("configurations_file is required unless --template-mode is specified")
 
     try:
         # Load compliance report
         print(f"Loading compliance report: {args.report_file}")
         compliance_report = load_json_file(args.report_file)
 
-        # Load configurations
-        print(f"Loading resource configurations: {args.configurations_file}")
-        configurations = load_json_file(args.configurations_file)
+        # Check if this is a template-mode report
+        template_mode = args.template_mode or compliance_report.get("templateMode", False)
+
+        # Load configurations (if not template mode)
+        if template_mode:
+            print("Running in template mode (no resource configurations)")
+            configurations = {"configurations": {}}
+        else:
+            print(f"Loading resource configurations: {args.configurations_file}")
+            configurations = load_json_file(args.configurations_file)
 
         # Determine output prefix
         output_prefix = args.output_prefix
@@ -1313,27 +1450,31 @@ def main():
                     print(f"  Template cross-check: {name} has {rule_count} rules")
 
         # Summary page
-        summary_html = generate_summary_page(compliance_report, evidence_sources, link_prefix, gap_report_link, extra_rules_report_link, matching_templates)
+        summary_html = generate_summary_page(compliance_report, evidence_sources, link_prefix, gap_report_link, extra_rules_report_link, matching_templates, template_mode)
         summary_file = f"{output_prefix}_summary.html"
         with open(summary_file, "w", encoding="utf-8") as f:
             f.write(summary_html)
         print(f"  Summary page: {summary_file}")
 
         # Evidence sources page
-        evidence_html = generate_evidence_page(compliance_report, evidence_sources, link_prefix, control_catalog_link)
+        evidence_html = generate_evidence_page(compliance_report, evidence_sources, link_prefix, control_catalog_link, template_mode)
         evidence_file = f"{output_prefix}_evidence.html"
         with open(evidence_file, "w", encoding="utf-8") as f:
             f.write(evidence_html)
         print(f"  Evidence sources page: {evidence_file}")
 
-        # Resources page
-        resources_html = generate_resources_page(compliance_report, configurations, link_prefix)
-        resources_file = f"{output_prefix}_resources.html"
-        with open(resources_file, "w", encoding="utf-8") as f:
-            f.write(resources_html)
-        print(f"  Resources page: {resources_file}")
+        # Resources page (skip in template mode)
+        if template_mode:
+            print(f"  Resources page: Skipped (template mode)")
+            print(f"\nGenerated 2 HTML files with prefix: {output_prefix}")
+        else:
+            resources_html = generate_resources_page(compliance_report, configurations, link_prefix)
+            resources_file = f"{output_prefix}_resources.html"
+            with open(resources_file, "w", encoding="utf-8") as f:
+                f.write(resources_html)
+            print(f"  Resources page: {resources_file}")
+            print(f"\nGenerated 3 HTML files with prefix: {output_prefix}")
 
-        print(f"\nGenerated 3 HTML files with prefix: {output_prefix}")
         print(f"Open {summary_file} to start browsing the report.")
 
     except FileNotFoundError as e:
