@@ -80,6 +80,37 @@ def get_rule_details(rule_names: list, region: str = None) -> dict:
     return rule_details
 
 
+def load_catalog_descriptions_from_file(catalog_file: str, source_identifiers: set = None) -> dict:
+    """
+    Load control descriptions from a cached Control Catalog JSON file.
+
+    Args:
+        catalog_file: Path to the cached catalog file
+        source_identifiers: Optional set of identifiers to filter (if None, returns all)
+
+    Returns:
+        Dict mapping source identifier to description
+    """
+    descriptions = {}
+
+    try:
+        with open(catalog_file, "r", encoding="utf-8") as f:
+            catalog_data = json.load(f)
+
+        controls = catalog_data.get("controls", {})
+        for identifier, control in controls.items():
+            if source_identifiers is None or identifier in source_identifiers:
+                if control.get("description"):
+                    descriptions[identifier] = control["description"]
+
+    except FileNotFoundError:
+        print(f"  Warning: Catalog file not found: {catalog_file}", file=sys.stderr)
+    except Exception as e:
+        print(f"  Warning: Could not load catalog file: {e}", file=sys.stderr)
+
+    return descriptions
+
+
 def get_control_catalog_descriptions(source_identifiers: set, region: str = None) -> dict:
     """
     Get descriptions from AWS Control Catalog for the given source identifiers.
@@ -410,6 +441,11 @@ def main():
         action="store_true",
         help="Print HTML to stdout instead of file"
     )
+    parser.add_argument(
+        "--catalog-file",
+        help="Path to cached Control Catalog JSON file (avoids API calls)",
+        default=None
+    )
 
     args = parser.parse_args()
 
@@ -430,9 +466,13 @@ def main():
         # Get Control Catalog descriptions for better rule descriptions
         source_identifiers = set(d.get("sourceIdentifier") for d in rule_details.values() if d.get("sourceIdentifier"))
         if source_identifiers:
-            print("Fetching descriptions from Control Catalog...")
-            catalog_descriptions = get_control_catalog_descriptions(source_identifiers, args.region)
-            print(f"  Retrieved {len(catalog_descriptions)} descriptions from Control Catalog")
+            if args.catalog_file:
+                print(f"Loading descriptions from cached catalog: {args.catalog_file}")
+                catalog_descriptions = load_catalog_descriptions_from_file(args.catalog_file, source_identifiers)
+            else:
+                print("Fetching descriptions from Control Catalog...")
+                catalog_descriptions = get_control_catalog_descriptions(source_identifiers, args.region)
+            print(f"  Retrieved {len(catalog_descriptions)} descriptions")
 
             # Merge Control Catalog descriptions into rule details
             for rule_name, details in rule_details.items():

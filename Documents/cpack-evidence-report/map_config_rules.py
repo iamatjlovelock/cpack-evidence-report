@@ -14,6 +14,38 @@ import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 
 
+def load_catalog_descriptions_from_file(catalog_file: str) -> dict:
+    """
+    Load control descriptions from a cached Control Catalog JSON file.
+
+    Args:
+        catalog_file: Path to the cached catalog file (from export_control_catalog.py)
+
+    Returns:
+        Dictionary mapping Config rule identifier to description
+    """
+    descriptions = {}
+
+    try:
+        print(f"Loading control descriptions from cached catalog: {catalog_file}")
+        with open(catalog_file, "r", encoding="utf-8") as f:
+            catalog_data = json.load(f)
+
+        controls = catalog_data.get("controls", {})
+        for identifier, control in controls.items():
+            if control.get("description"):
+                descriptions[identifier] = control["description"]
+
+        print(f"  Found descriptions for {len(descriptions)} Config rule identifiers")
+
+    except FileNotFoundError:
+        print(f"  Warning: Catalog file not found: {catalog_file}")
+    except Exception as e:
+        print(f"  Warning: Could not load catalog file: {e}")
+
+    return descriptions
+
+
 def get_control_catalog_descriptions(region: str = None) -> dict:
     """
     Fetch control descriptions from the AWS Controls Catalog API.
@@ -149,13 +181,14 @@ def extract_config_evidence_sources(framework_data: dict) -> dict:
     return dict(config_sources)
 
 
-def map_evidence_to_rules(framework_file: str, region: str = None) -> dict:
+def map_evidence_to_rules(framework_file: str, region: str = None, catalog_file: str = None) -> dict:
     """
     Map framework evidence sources to Config rules.
 
     Args:
         framework_file: Path to framework JSON file
         region: AWS region (optional)
+        catalog_file: Path to cached Control Catalog file (optional, avoids API calls)
 
     Returns:
         Mapping result dictionary
@@ -173,9 +206,12 @@ def map_evidence_to_rules(framework_file: str, region: str = None) -> dict:
     config_sources = extract_config_evidence_sources(framework_data)
     print(f"  Found {len(config_sources)} unique Config rule identifiers referenced")
 
-    # Get control descriptions from Controls Catalog
+    # Get control descriptions - prefer cached file over API call
     print()
-    catalog_descriptions = get_control_catalog_descriptions(region)
+    if catalog_file:
+        catalog_descriptions = load_catalog_descriptions_from_file(catalog_file)
+    else:
+        catalog_descriptions = get_control_catalog_descriptions(region)
 
     # Get Config rules from AWS
     print()
@@ -285,11 +321,16 @@ def main():
         action="store_true",
         help="Print full JSON to stdout instead of file"
     )
+    parser.add_argument(
+        "--catalog-file",
+        help="Path to cached Control Catalog JSON file (avoids API calls)",
+        default=None
+    )
 
     args = parser.parse_args()
 
     try:
-        mapping_result = map_evidence_to_rules(args.framework_file, args.region)
+        mapping_result = map_evidence_to_rules(args.framework_file, args.region, args.catalog_file)
 
         if args.stdout:
             print(json.dumps(mapping_result, indent=2))

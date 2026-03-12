@@ -4,12 +4,14 @@ Unified workflow script that runs all compliance report scripts in sequence.
 
 This script orchestrates:
 1. get_framework_controls.py - Extract controls from Audit Manager framework
-2. map_config_rules.py - Map evidence sources to Config rules
-3. generate_compliance_report.py - Generate compliance report from conformance pack
-4. get_resource_configurations.py - Get configuration items for all resources
-5. generate_html_report.py - Generate multi-page HTML reports
+2. export_control_catalog.py - Export Config rules from AWS Control Catalog (cached)
+3. map_config_rules.py - Map evidence sources to Config rules
+4. generate_compliance_report.py - Generate compliance report from conformance pack
+5. get_resource_configurations.py - Get configuration items for all resources
+6. generate_html_report.py - Generate multi-page HTML reports
+7-9. Generate Control Catalog, Gap, and Extra Rules reports
 
-All output files will be written to a folder named for the output-prefix parameter 
+All output files will be written to a folder named for the output-prefix parameter
 """
 
 import argparse
@@ -305,20 +307,34 @@ Example usage:
             print("\nWorkflow failed at Step 1: Framework extraction", file=sys.stderr)
             return 1
 
-    # Step 2: Map Config rules
+    # Step 2: Export Control Catalog (needed for descriptions in map_config_rules)
+    if use_cached_catalog:
+        print(f"\nSkipping Step 2: Using cached Control Catalog: {cached_catalog_file}")
+        print(f"  (use --refresh-catalog to force re-download)")
+    else:
+        script_args = ["-o", cached_catalog_file] + region_args
+        if not run_script(
+            "export_control_catalog.py",
+            script_args,
+            "Export Config rules from AWS Control Catalog"
+        ):
+            print("\nWorkflow failed at Step 2: Control Catalog export", file=sys.stderr)
+            return 1
+
+    # Step 3: Map Config rules
     if not args.skip_map:
-        script_args = [framework_file, "-o", mapping_file] + region_args
+        script_args = [framework_file, "-o", mapping_file, "--catalog-file", cached_catalog_file] + region_args
         if not run_script(
             "map_config_rules.py",
             script_args,
             "Map evidence sources to AWS Config rules"
         ):
-            print("\nWorkflow failed at Step 2: Config rule mapping", file=sys.stderr)
+            print("\nWorkflow failed at Step 3: Config rule mapping", file=sys.stderr)
             return 1
     else:
-        print(f"\nSkipping Step 2: Using existing mapping file: {mapping_file}")
+        print(f"\nSkipping Step 3: Using existing mapping file: {mapping_file}")
 
-    # Step 3: Generate compliance report
+    # Step 4: Generate compliance report
     if not args.skip_report:
         if template_mode:
             # Template mode: Use template-based report generator
@@ -330,7 +346,7 @@ Example usage:
                 script_args,
                 "Generate template-based compliance report (no deployed pack)"
             ):
-                print("\nWorkflow failed at Step 3: Template report generation", file=sys.stderr)
+                print("\nWorkflow failed at Step 4: Template report generation", file=sys.stderr)
                 return 1
         else:
             # Normal mode: Use conformance pack report generator
@@ -345,14 +361,14 @@ Example usage:
                 script_args,
                 "Generate compliance report from conformance pack"
             ):
-                print("\nWorkflow failed at Step 3: Report generation", file=sys.stderr)
+                print("\nWorkflow failed at Step 4: Report generation", file=sys.stderr)
                 return 1
     else:
-        print(f"\nSkipping Step 3: Using existing report file: {report_file}")
+        print(f"\nSkipping Step 4: Using existing report file: {report_file}")
 
-    # Step 4: Get resource configurations (skip in template mode)
+    # Step 5: Get resource configurations (skip in template mode)
     if template_mode:
-        print(f"\nSkipping Step 4: No resource configurations in template mode")
+        print(f"\nSkipping Step 5: No resource configurations in template mode")
     elif not args.skip_configs:
         script_args = [report_file, "-o", configs_file] + region_args
         if not run_script(
@@ -360,12 +376,12 @@ Example usage:
             script_args,
             "Retrieve resource configurations for all evaluated resources"
         ):
-            print("\nWorkflow failed at Step 4: Resource configuration retrieval", file=sys.stderr)
+            print("\nWorkflow failed at Step 5: Resource configuration retrieval", file=sys.stderr)
             return 1
     else:
-        print(f"\nSkipping Step 4: Resource configuration retrieval")
+        print(f"\nSkipping Step 5: Resource configuration retrieval")
 
-    # Step 5: Generate HTML reports
+    # Step 6: Generate HTML reports
     if template_mode:
         # Template mode: Generate HTML without configs
         if not args.skip_html:
@@ -375,10 +391,10 @@ Example usage:
                 script_args,
                 "Generate HTML reports (template mode - no resource data)"
             ):
-                print("\nWorkflow failed at Step 5: HTML report generation", file=sys.stderr)
+                print("\nWorkflow failed at Step 6: HTML report generation", file=sys.stderr)
                 return 1
         else:
-            print(f"\nSkipping Step 5: HTML report generation")
+            print(f"\nSkipping Step 6: HTML report generation")
     elif not args.skip_html and not args.skip_configs:
         script_args = [report_file, configs_file, "-o", html_prefix]
         if not run_script(
@@ -386,27 +402,12 @@ Example usage:
             script_args,
             "Generate multi-page HTML reports"
         ):
-            print("\nWorkflow failed at Step 5: HTML report generation", file=sys.stderr)
+            print("\nWorkflow failed at Step 6: HTML report generation", file=sys.stderr)
             return 1
     elif args.skip_html:
-        print(f"\nSkipping Step 5: HTML report generation")
+        print(f"\nSkipping Step 6: HTML report generation")
     else:
-        print(f"\nSkipping Step 5: HTML report generation (requires resource configurations)")
-
-    # Step 6: Export Control Catalog (if needed)
-    if not args.skip_html:
-        if use_cached_catalog:
-            print(f"\nSkipping Step 6: Using cached Control Catalog: {cached_catalog_file}")
-            print(f"  (use --refresh-catalog to force re-download)")
-        else:
-            script_args = ["-o", cached_catalog_file] + region_args
-            if not run_script(
-                "export_control_catalog.py",
-                script_args,
-                "Export Config rules from AWS Control Catalog"
-            ):
-                print("\nWorkflow failed at Step 6: Control Catalog export", file=sys.stderr)
-                return 1
+        print(f"\nSkipping Step 6: HTML report generation (requires resource configurations)")
 
     # Step 7: Generate control catalog report
     if not args.skip_html:
@@ -448,7 +449,7 @@ Example usage:
     if not args.skip_html:
         summary_link = os.path.basename(html_summary)
         control_catalog_link = os.path.basename(html_control_catalog)
-        script_args = [report_file, "-o", html_extra_rules, "--summary-link", summary_link, "--control-catalog-link", control_catalog_link] + region_args
+        script_args = [report_file, "-o", html_extra_rules, "--summary-link", summary_link, "--control-catalog-link", control_catalog_link, "--catalog-file", cached_catalog_file] + region_args
         if not run_script(
             "generate_extra_rules_report.py",
             script_args,
@@ -478,16 +479,16 @@ Example usage:
         generated_files.append(("Compliance Report", report_file))
     if not args.skip_configs and not template_mode and configs_file:
         generated_files.append(("Resource Configurations", configs_file))
+    # Control Catalog is always exported early (Step 2)
+    if use_cached_catalog:
+        generated_files.append(("Control Catalog (cached)", cached_catalog_file))
+    else:
+        generated_files.append(("Control Catalog", cached_catalog_file))
     if not args.skip_html:
         generated_files.append(("HTML Summary", html_summary))
         generated_files.append(("HTML Evidence", html_evidence))
         if not template_mode:
             generated_files.append(("HTML Resources", html_resources))
-    if not args.skip_html:
-        if use_cached_catalog:
-            generated_files.append(("Control Catalog (cached)", cached_catalog_file))
-        else:
-            generated_files.append(("Control Catalog", cached_catalog_file))
         generated_files.append(("HTML Control Catalog", html_control_catalog))
         generated_files.append(("HTML Gap Report", html_gaps))
         generated_files.append(("HTML Extra Rules", html_extra_rules))
