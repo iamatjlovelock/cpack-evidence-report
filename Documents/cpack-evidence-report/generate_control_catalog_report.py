@@ -588,7 +588,7 @@ def generate_control_catalog_html(
             color: #c53030;
         }}
         .toc-list a.not-mapped {{
-            color: #dd6b20;
+            color: #805ad5;
         }}
         .toc-list a.mapped {{
             color: #38a169;
