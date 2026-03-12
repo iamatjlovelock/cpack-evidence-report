@@ -668,6 +668,11 @@ def generate_control_catalog_html(
 
     <div class="toc">
         <h3>Quick Navigation</h3>
+        <p style="font-size: 13px; color: #718096; margin: 0 0 15px 0;">
+            Entries in Control Catalog that reference the framework are shown in <span style="color: #38a169; font-weight: 600;">green</span>.
+            Entries in Control Catalog that do not reference the framework are shown in <span style="color: #805ad5; font-weight: 600;">purple</span>.
+            Rules without an entry in Control Catalog are shown in <span style="color: #c53030; font-weight: 600;">red</span>.
+        </p>
         <div class="toc-list">
 """
 
