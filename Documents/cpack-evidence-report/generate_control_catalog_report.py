@@ -681,11 +681,22 @@ def generate_control_catalog_html(
     <div class="info-box">
         <h3>What does this report show?</h3>
         <p>
-            There were a total of <strong>{total_rules}</strong> unique rules that were either mapped in the
-            framework defined in Audit Manager or included in the Conformance Pack template. Of these,
-            <strong>{in_catalog_count}</strong> rules are referenced in the Controls Catalog and
-            <strong>{not_in_catalog_count}</strong> are not referenced. Of the <strong>{in_catalog_count}</strong>
-            that are referenced, Control Catalog does not map <strong>{not_mapped_count}</strong> of these to the framework.
+            The AWS Control Catalog is a centralized repository of AWS-managed controls that provides detailed information
+            about each Config rule, including its description, severity, behavior, and which compliance frameworks reference it.
+            This report cross-references all Config rules from the selected Audit Manager framework and conformance pack
+            against the Control Catalog to show you comprehensive details about each rule.
+        </p>
+        <p style="margin-top: 10px;">
+            <strong>Summary:</strong> There are <strong>{total_rules}</strong> unique rules referenced in the framework
+            and/or conformance pack. Of these, <strong>{in_catalog_count}</strong> have entries in the Control Catalog
+            and <strong>{not_in_catalog_count}</strong> do not. Of the rules in the catalog,
+            <strong>{not_mapped_count}</strong> are not mapped to this specific framework by AWS.
+        </p>
+        <p style="margin-top: 10px;">
+            <strong>How to use this report:</strong> Use the Quick Navigation below to jump to any rule. Each entry shows
+            the rule's description, ARN, severity level, and a list of all compliance frameworks that reference it
+            according to AWS Control Catalog. Rules highlighted in green are mapped to the current framework,
+            purple rules are in the catalog but mapped to other frameworks, and red rules are not found in the Control Catalog.
         </p>
     </div>
 
