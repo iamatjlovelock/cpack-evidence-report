@@ -411,12 +411,13 @@ Example usage:
     # Step 7: Generate control catalog report
     if not args.skip_html:
         summary_link = os.path.basename(html_summary)
+        link_prefix = os.path.basename(html_prefix)
         script_args = [
             report_file,
             "-o", html_control_catalog,
             "--catalog-file", cached_catalog_file,
             "--skip-fetch",
-            "--summary-link", summary_link
+            "--link-prefix", link_prefix
         ] + region_args
         if not run_script(
             "generate_control_catalog_report.py",

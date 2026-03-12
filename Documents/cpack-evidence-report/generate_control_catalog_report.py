@@ -227,7 +227,9 @@ def generate_control_catalog_html(
     compliance_report: dict,
     catalog_controls: dict,
     extra_rule_identifiers: dict,
-    summary_link: str = None
+    summary_link: str = None,
+    link_prefix: str = None,
+    template_mode: bool = False
 ) -> str:
     """
     Generate HTML report for Control Catalog information.
@@ -237,6 +239,8 @@ def generate_control_catalog_html(
         catalog_controls: Dict of control details from Control Catalog
         extra_rule_identifiers: Dict mapping extra rule names to identifiers
         summary_link: Link back to summary page (optional)
+        link_prefix: Prefix for navigation links (optional)
+        template_mode: Whether running in template mode
 
     Returns:
         HTML string
@@ -301,9 +305,28 @@ def generate_control_catalog_html(
     in_catalog_count = len([i for i in all_identifiers if i in catalog_controls])
     not_in_catalog_count = len([i for i in all_identifiers if i not in catalog_controls])
 
-    # Build navigation
+    # Build navigation bar
     nav_html = ""
-    if summary_link:
+    if link_prefix:
+        nav_items = [
+            ("summary", "Summary Report"),
+            ("evidence", "Evidence Sources"),
+        ]
+        if not template_mode:
+            nav_items.append(("resources", "Resources"))
+        nav_items.append(("control_catalog", "Control Catalog"))
+
+        nav_links = []
+        for page_id, page_name in nav_items:
+            active_class = ' class="active"' if page_id == "control_catalog" else ""
+            nav_links.append(f'<a href="{link_prefix}_{page_id}.html"{active_class}>{page_name}</a>')
+
+        nav_html = f"""
+    <nav class="nav">
+        {" ".join(nav_links)}
+    </nav>
+"""
+    elif summary_link:
         nav_html = f"""
     <nav class="nav">
         <a href="{summary_link}">&larr; Back to Summary Report</a>
@@ -864,7 +887,12 @@ def main():
     )
     parser.add_argument(
         "--summary-link",
-        help="Link back to summary page",
+        help="Link back to summary page (used if --link-prefix not provided)",
+        default=None
+    )
+    parser.add_argument(
+        "--link-prefix",
+        help="Prefix for navigation links (enables full navigation bar)",
         default=None
     )
     parser.add_argument(
@@ -965,11 +993,14 @@ def main():
             print(f"Control Catalog data written to: {catalog_file}")
 
         # Generate HTML
+        template_mode = compliance_report.get("templateMode", False)
         html_content = generate_control_catalog_html(
             compliance_report,
             catalog_controls,
             extra_rule_identifiers,
-            args.summary_link
+            args.summary_link,
+            args.link_prefix,
+            template_mode
         )
 
         if args.stdout:

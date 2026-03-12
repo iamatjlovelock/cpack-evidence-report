@@ -473,6 +473,8 @@ def generate_navigation(active_page: str, prefix: str, template_mode: bool = Fal
     # Only include Resources page if not in template mode
     if not template_mode:
         pages.append(("resources", "Resources"))
+    # Always include Control Catalog
+    pages.append(("control_catalog", "Control Catalog"))
 
     nav_items = []
     for page_id, page_name in pages:
