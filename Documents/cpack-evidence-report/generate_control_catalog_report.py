@@ -591,7 +591,7 @@ def generate_control_catalog_html(
             color: #dd6b20;
         }}
         .toc-list a.mapped {{
-            color: #22543d;
+            color: #38a169;
         }}
         @media (max-width: 900px) {{
             .toc-list {{
