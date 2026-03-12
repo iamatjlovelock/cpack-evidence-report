@@ -69,6 +69,28 @@ python run_compliance_workflow.py \
 
 The template is auto-detected using `conformance-packs/Framework-to-conformance-pack-template-mapping.csv`. Override with `--template path/to/template.yaml`.
 
+#### Frameworks Without Templates
+
+Not all Audit Manager frameworks have an associated conformance pack template. When you run template analysis mode on such a framework, the workflow:
+
+1. **Generates a framework-only report** - Lists all Config rules referenced by the framework
+2. **Shows an informational banner** - Explains that no template is available for this framework
+3. **Skips gap and extra rules reports** - Since there's no template to compare against
+4. **Still generates the Control Catalog report** - Provides detailed information about each Config rule from the AWS Control Catalog API
+
+This allows you to explore what Config rules a framework requires even when AWS doesn't provide a matching conformance pack template. You can use this information to create a custom conformance pack or identify a related framework's template that might work.
+
+Example output when no template is found:
+```
+Auto-detecting template for framework...
+  No matching conformance pack template found for this framework
+  Generating framework-only report (no template mapping)
+  Total framework Config rules: 42
+...
+Skipping Step 8: Gap report (no template available for comparison)
+Skipping Step 9: Extra rules report (no template available for comparison)
+```
+
 ## Quick Start
 
 ### Run Full Workflow (Live Mode)
