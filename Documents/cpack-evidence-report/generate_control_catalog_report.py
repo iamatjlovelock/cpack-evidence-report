@@ -261,6 +261,7 @@ def generate_control_catalog_html(
     all_identifiers = set()
     identifiers_in_framework = set()
     identifiers_in_template = set()
+    identifier_to_rule_names = {}  # Map identifier to set of config rule names
 
     # From framework - track both identifier and whether it's in the conformance pack
     for control_set in compliance_report.get("controlSets", []):
@@ -268,17 +269,29 @@ def generate_control_catalog_html(
             for source in control.get("evidenceSources", []):
                 if source.get("sourceType") == "AWS_Config":
                     keyword = source.get("keywordValue")
+                    config_rule_name = source.get("configRuleName")
                     if keyword:
                         all_identifiers.add(keyword)
                         identifiers_in_framework.add(keyword)
+                        # Track config rule name if available and different from keyword
+                        if config_rule_name and config_rule_name != keyword:
+                            if keyword not in identifier_to_rule_names:
+                                identifier_to_rule_names[keyword] = set()
+                            identifier_to_rule_names[keyword].add(config_rule_name)
                         # Check if this rule is in the conformance pack/template
                         if source.get("inConformancePack", False):
                             identifiers_in_template.add(keyword)
 
     # From extra rules (in template but not in framework)
-    for identifier in extra_rule_identifiers.values():
+    # extra_rule_identifiers maps rule name -> identifier
+    for rule_name, identifier in extra_rule_identifiers.items():
         all_identifiers.add(identifier)
         identifiers_in_template.add(identifier)
+        # Track the rule name if different from identifier
+        if rule_name != identifier:
+            if identifier not in identifier_to_rule_names:
+                identifier_to_rule_names[identifier] = set()
+            identifier_to_rule_names[identifier].add(rule_name)
 
     # Build control name lookup (item number -> control name)
     # Control names are like "2.2.1: System components are configured..."
@@ -446,6 +459,19 @@ def generate_control_catalog_html(
             border-radius: 4px;
             display: inline-block;
             margin-bottom: 15px;
+        }}
+        .control-rule-names {{
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 12px;
+            color: #4a5568;
+            margin: 10px 0;
+            padding: 8px 12px;
+            background: #edf2f7;
+            border-radius: 4px;
+            word-break: break-all;
+        }}
+        .control-rule-names strong {{
+            color: #2d3748;
         }}
         .control-description {{
             color: #4a5568;
@@ -878,11 +904,19 @@ def generate_control_catalog_html(
                 badges_html += '<span class="source-badge badge-not-in">Not in Conformance Pack Template</span>'
             badges_html += '</div>'
 
+            # Build config rule names HTML if available
+            rule_names = identifier_to_rule_names.get(identifier, set())
+            rule_names_html = ""
+            if rule_names:
+                rule_names_list = ", ".join(sorted(escape_html(rn) for rn in rule_names))
+                rule_names_html = f'<div class="control-rule-names"><strong>Config Rule Name(s):</strong> {rule_names_list}</div>'
+
             html_content += f"""
         <div class="{entry_class}" id="{anchor}">
             <h3>{name}</h3>
             <div class="control-identifier">{escape_html(identifier)}</div>
             {badges_html}
+            {rule_names_html}
             <div class="control-description">{description}</div>
             <div class="control-arn">ARN: {arn}</div>
             <div class="control-meta">
@@ -917,11 +951,19 @@ def generate_control_catalog_html(
                 badges_html += '<span class="source-badge badge-not-in">Not in Conformance Pack Template</span>'
             badges_html += '</div>'
 
+            # Build config rule names HTML if available
+            rule_names = identifier_to_rule_names.get(identifier, set())
+            rule_names_html = ""
+            if rule_names:
+                rule_names_list = ", ".join(sorted(escape_html(rn) for rn in rule_names))
+                rule_names_html = f'<div class="control-rule-names"><strong>Config Rule Name(s):</strong> {rule_names_list}</div>'
+
             html_content += f"""
         <div class="control-entry not-in-catalog" id="{anchor}">
             <h3>{escape_html(identifier)}</h3>
             <div class="control-identifier">{escape_html(identifier)}</div>
             {badges_html}
+            {rule_names_html}
             <div class="control-description">
                 This rule identifier was not found in the AWS Control Catalog.
                 It may be a custom rule or a rule that has been deprecated.
