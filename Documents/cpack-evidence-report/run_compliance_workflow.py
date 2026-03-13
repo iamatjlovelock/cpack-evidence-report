@@ -51,7 +51,7 @@ def run_script(script_name: str, args: list, description: str) -> bool:
     print(f"Running: {script_name} {' '.join(args)}")
     print('=' * 80)
 
-    script_path = os.path.join(os.path.dirname(__file__), script_name)
+    script_path = os.path.join(os.path.dirname(__file__), "utility-scripts", script_name)
 
     if not os.path.exists(script_path):
         print(f"Error: Script not found: {script_path}", file=sys.stderr)
@@ -268,7 +268,7 @@ Example usage:
         print("STEP: Extract framework controls from AWS Audit Manager (early)")
         print(f"Running: get_framework_controls.py {args.framework_id} -o {framework_file}")
         print("=" * 80)
-        script_path = os.path.join(os.path.dirname(__file__), "get_framework_controls.py")
+        script_path = os.path.join(os.path.dirname(__file__), "utility-scripts", "get_framework_controls.py")
         cmd = [get_python_executable(), script_path, args.framework_id, "-o", framework_file] + region_args
         try:
             result = subprocess.run(cmd, check=True)
