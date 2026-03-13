@@ -1553,6 +1553,14 @@ def generate_summary_page(
         <ul style="margin: 0; padding-left: 20px;">
             {templates_html}
         </ul>
+        <div style="margin-top: 15px; padding: 12px; background: #f7fafc; border-radius: 6px; border-left: 3px solid #4299e1;">
+            <p style="color: #4a5568; font-size: 13px; margin: 0 0 8px 0;"><strong>Understanding the "In Template" column:</strong></p>
+            <ul style="color: #4a5568; font-size: 13px; margin: 0; padding-left: 20px;">
+                <li><span class="badge compliant" style="font-size: 11px;">Yes</span> — Rule is deployed via conformance pack and being evaluated</li>
+                <li><span class="badge not-applicable" style="font-size: 11px;">No</span> — Rule is evaluated via Security Hub (not conformance pack), still being monitored</li>
+                <li><span class="badge missing" style="font-size: 11px;">Missing</span> — Rule is NOT deployed; this is a gap that needs to be addressed</li>
+            </ul>
+        </div>
     </div>
 """)
 
