@@ -186,6 +186,20 @@ Example usage:
 
     args = parser.parse_args()
 
+    # Resolve security-hub-file path if just a name was provided
+    if args.security_hub_file:
+        if not os.path.exists(args.security_hub_file):
+            # Try adding .json extension
+            if os.path.exists(args.security_hub_file + ".json"):
+                args.security_hub_file = args.security_hub_file + ".json"
+            # Try looking in security-standard-controls folder
+            elif os.path.exists(os.path.join("security-standard-controls", args.security_hub_file)):
+                args.security_hub_file = os.path.join("security-standard-controls", args.security_hub_file)
+            elif os.path.exists(os.path.join("security-standard-controls", args.security_hub_file + ".json")):
+                args.security_hub_file = os.path.join("security-standard-controls", args.security_hub_file + ".json")
+            else:
+                parser.error(f"Security Hub file not found: {args.security_hub_file}")
+
     # Check for template-only mode
     template_mode = args.conformance_pack.lower() == "none"
 
