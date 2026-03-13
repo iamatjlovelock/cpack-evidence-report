@@ -531,7 +531,7 @@ def build_evidence_source_data(compliance_report: dict) -> dict:
     for control_set in compliance_report.get("controlSets", []):
         for control in control_set.get("controls", []):
             for source in control.get("evidenceSources", []):
-                if source.get("sourceType") != "AWS_Config":
+                if source.get("sourceType") not in ["AWS_Config", "AWS_Security_Hub"]:
                     continue
 
                 rule_name = source.get("configRuleName")
@@ -589,7 +589,7 @@ def count_mapped_rules(compliance_report: dict) -> int:
     for control_set in compliance_report.get("controlSets", []):
         for control in control_set.get("controls", []):
             for source in control.get("evidenceSources", []):
-                if source.get("sourceType") == "AWS_Config" and source.get("inConformancePack", False):
+                if source.get("sourceType") in ["AWS_Config", "AWS_Security_Hub"] and source.get("inConformancePack", False):
                     keyword = source.get("keywordValue")
                     if keyword:
                         mapped_keywords.add(keyword)
@@ -608,7 +608,7 @@ def count_unmapped_rules(compliance_report: dict) -> int:
     for control_set in compliance_report.get("controlSets", []):
         for control in control_set.get("controls", []):
             for source in control.get("evidenceSources", []):
-                if source.get("sourceType") == "AWS_Config" and not source.get("inConformancePack", False):
+                if source.get("sourceType") in ["AWS_Config", "AWS_Security_Hub"] and not source.get("inConformancePack", False):
                     keyword = source.get("keywordValue")
                     if keyword:
                         unmapped_keywords.add(keyword)
@@ -848,7 +848,7 @@ def generate_summary_page(
         rules_with_issues = set()
         for control in control_set.get("controls", []):
             for source in control.get("evidenceSources", []):
-                if source.get("sourceType") == "AWS_Config" and source.get("inConformancePack"):
+                if source.get("sourceType") in ["AWS_Config", "AWS_Security_Hub"] and source.get("inConformancePack"):
                     if source.get("complianceSummary", {}).get("nonCompliant", 0) > 0:
                         rule_name = source.get("configRuleName")
                         if rule_name:
@@ -861,7 +861,7 @@ def generate_summary_page(
         missing_rules = set()
         for control in control_set.get("controls", []):
             for source in control.get("evidenceSources", []):
-                if source.get("sourceType") == "AWS_Config" and not source.get("inConformancePack"):
+                if source.get("sourceType") in ["AWS_Config", "AWS_Security_Hub"] and not source.get("inConformancePack"):
                     keyword = source.get("keywordValue") or source.get("configRuleName")
                     if keyword:
                         missing_rules.add(keyword)
@@ -883,9 +883,10 @@ def generate_summary_page(
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 40%">Framework Control</th>
-                        <th style="width: 45%">Evidence Source (Config Rule)</th>
-                        <th style="width: 15%; text-align: center;">In Template</th>
+                        <th style="width: 35%">Framework Control</th>
+                        <th style="width: 40%">Evidence Source (Config Rule)</th>
+                        <th style="width: 12%; text-align: center;">In Standard</th>
+                        <th style="width: 13%; text-align: center;">In Template</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -904,8 +905,9 @@ def generate_summary_page(
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 35%">Framework Control</th>
-                        <th style="width: 35%">Evidence Source (Config Rule)</th>
+                        <th style="width: 30%">Framework Control</th>
+                        <th style="width: 30%">Evidence Source (Config Rule)</th>
+                        <th style="width: 10%; text-align: center;">In Standard</th>
                         <th style="width: 10%; text-align: center;">Compliant</th>
                         <th style="width: 10%; text-align: center;">Non-Compliant</th>
                         <th style="width: 10%; text-align: center;">Status</th>
@@ -918,8 +920,8 @@ def generate_summary_page(
             ctrl_name = escape_html(control.get("controlName", ""))
             sources = control.get("evidenceSources", [])
 
-            # Get all AWS_Config sources
-            all_config_sources = [s for s in sources if s.get("sourceType") == "AWS_Config"]
+            # Get all AWS_Config and AWS_Security_Hub sources
+            all_config_sources = [s for s in sources if s.get("sourceType") in ["AWS_Config", "AWS_Security_Hub"]]
 
             # Separate into mapped (in pack) and missing (not in pack)
             mapped_sources = [s for s in all_config_sources if s.get("inConformancePack")]
@@ -932,6 +934,7 @@ def generate_summary_page(
                     <tr>
                         <td>{ctrl_name}</td>
                         <td style="color: #718096; font-style: italic;">No Config rules referenced</td>
+                        <td style="text-align: center;"><span class="badge not-applicable">-</span></td>
                         <td style="text-align: center;"><span class="badge not-applicable">N/A</span></td>
                     </tr>
 """)
@@ -940,6 +943,7 @@ def generate_summary_page(
                     <tr>
                         <td>{ctrl_name}</td>
                         <td style="color: #718096; font-style: italic;">No Config rules referenced</td>
+                        <td style="text-align: center;">-</td>
                         <td style="text-align: center;">-</td>
                         <td style="text-align: center;">-</td>
                         <td style="text-align: center;"><span class="badge not-applicable">N/A</span></td>
@@ -961,11 +965,16 @@ def generate_summary_page(
                 ctrl_cell = ctrl_name if first else ""
                 first = False
 
+                # Check if this is a Security Hub standard source
+                is_security_hub = source.get("sourceType") == "AWS_Security_Hub"
+                in_standard_badge = '<span class="badge compliant">Yes</span>' if is_security_hub else '<span class="badge not-applicable">No</span>'
+
                 if template_mode:
                     html_parts.append(f"""
                     <tr>
                         <td>{ctrl_cell}</td>
                         <td><a href="{prefix}_evidence.html#{rule_anchor}">{source_name}</a></td>
+                        <td style="text-align: center;">{in_standard_badge}</td>
                         <td style="text-align: center;"><span class="badge compliant">Yes</span></td>
                     </tr>
 """)
@@ -986,6 +995,7 @@ def generate_summary_page(
                     <tr>
                         <td>{ctrl_cell}</td>
                         <td><a href="{prefix}_evidence.html#{rule_anchor}">{source_name}</a></td>
+                        <td style="text-align: center;">{in_standard_badge}</td>
                         <td style="text-align: center;" class="count-compliant">{compliant_count}</td>
                         <td style="text-align: center;" class="count-non-compliant">{non_compliant_count}</td>
                         <td style="text-align: center;">{status_badge}</td>
@@ -1001,6 +1011,10 @@ def generate_summary_page(
 
                 ctrl_cell = ctrl_name if first else ""
                 first = False
+
+                # Check if this is a Security Hub standard source
+                is_security_hub = source.get("sourceType") == "AWS_Security_Hub"
+                in_standard_badge = '<span class="badge compliant">Yes</span>' if is_security_hub else '<span class="badge not-applicable">No</span>'
 
                 # Link to gap report if available, or to control catalog if no template available
                 if gap_report_link and not no_template_available:
@@ -1020,6 +1034,7 @@ def generate_summary_page(
                     <tr>
                         <td>{ctrl_cell}</td>
                         <td>{source_display}</td>
+                        <td style="text-align: center;">{in_standard_badge}</td>
                         <td style="text-align: center;">{status_badge}</td>
                     </tr>
 """)
@@ -1028,6 +1043,7 @@ def generate_summary_page(
                     <tr>
                         <td>{ctrl_cell}</td>
                         <td>{source_display}</td>
+                        <td style="text-align: center;">{in_standard_badge}</td>
                         <td style="text-align: center;">-</td>
                         <td style="text-align: center;">-</td>
                         <td style="text-align: center;">{status_badge}</td>

@@ -127,7 +127,7 @@ def generate_template_compliance_report(
             }
 
             # Extract evidence sources from controlMappingSources
-            # These can be direct AWS_Config sources or Core_Control sources with nested evidence
+            # These can be direct AWS_Config/AWS_Security_Hub sources or Core_Control sources with nested evidence
             for mapping_source in control.get("controlMappingSources", []):
                 source_type = mapping_source.get("sourceType", "")
 
@@ -150,10 +150,34 @@ def generate_template_compliance_report(
                         ctrl_data["evidenceSources"].append(source_data)
                         all_evidence_sources.add(keyword)
 
+                elif source_type == "AWS_Security_Hub":
+                    # Direct AWS_Security_Hub source
+                    keyword = mapping_source.get("sourceKeyword", {}).get("keywordValue", "")
+                    if keyword:
+                        # Use composite key for Security Hub sources
+                        sec_hub_key = f"SecurityHub:{keyword}"
+                        framework_rule_identifiers.add(sec_hub_key)
+                        in_template = sec_hub_key in template_rules or keyword in template_rules
+
+                        source_data = {
+                            "sourceName": mapping_source.get("sourceName", ""),
+                            "sourceDescription": mapping_source.get("sourceDescription", ""),
+                            "sourceType": "AWS_Security_Hub",
+                            "keywordValue": keyword,
+                            "securityHubControlId": keyword,
+                            "configRuleName": template_rules.get(sec_hub_key, template_rules.get(keyword, keyword)),
+                            "inConformancePack": in_template,
+                            "evaluationResults": []
+                        }
+                        ctrl_data["evidenceSources"].append(source_data)
+                        all_evidence_sources.add(sec_hub_key)
+
                 elif source_type == "Core_Control":
                     # Core_Control with nested evidence sources
                     for nested_source in mapping_source.get("coreControlEvidenceSources", []):
-                        if nested_source.get("sourceType") == "AWS_Config":
+                        nested_type = nested_source.get("sourceType")
+
+                        if nested_type == "AWS_Config":
                             keyword = nested_source.get("sourceKeyword", {}).get("keywordValue", "")
                             if keyword:
                                 framework_rule_identifiers.add(keyword)
@@ -170,6 +194,26 @@ def generate_template_compliance_report(
                                 }
                                 ctrl_data["evidenceSources"].append(source_data)
                                 all_evidence_sources.add(keyword)
+
+                        elif nested_type == "AWS_Security_Hub":
+                            keyword = nested_source.get("sourceKeyword", {}).get("keywordValue", "")
+                            if keyword:
+                                sec_hub_key = f"SecurityHub:{keyword}"
+                                framework_rule_identifiers.add(sec_hub_key)
+                                in_template = sec_hub_key in template_rules or keyword in template_rules
+
+                                source_data = {
+                                    "sourceName": nested_source.get("sourceName", ""),
+                                    "sourceDescription": nested_source.get("sourceDescription", ""),
+                                    "sourceType": "AWS_Security_Hub",
+                                    "keywordValue": keyword,
+                                    "securityHubControlId": keyword,
+                                    "configRuleName": template_rules.get(sec_hub_key, template_rules.get(keyword, keyword)),
+                                    "inConformancePack": in_template,
+                                    "evaluationResults": []
+                                }
+                                ctrl_data["evidenceSources"].append(source_data)
+                                all_evidence_sources.add(sec_hub_key)
 
             cs_data["controls"].append(ctrl_data)
             cs_data["summary"]["totalControls"] += 1

@@ -140,7 +140,11 @@ def get_conformance_pack_compliance_details(
 
     except ClientError as e:
         # Rule might not be in the conformance pack
-        if e.response["Error"]["Code"] in ["NoSuchConfigRuleException", "NoSuchConformancePackException"]:
+        if e.response["Error"]["Code"] in [
+            "NoSuchConfigRuleException",
+            "NoSuchConformancePackException",
+            "NoSuchConfigRuleInConformancePackException"
+        ]:
             return []
         raise
 
@@ -150,6 +154,7 @@ def get_conformance_pack_compliance_details(
 def build_keyword_to_cpack_rule_map(config_mapping: dict, cpack_rule_names: set) -> tuple:
     """
     Build a mapping from keyword values to conformance pack rule names and descriptions.
+    Handles both AWS_Config and AWS_Security_Hub source types.
 
     Args:
         config_mapping: Config mapping JSON from map_config_rules.py
@@ -162,16 +167,26 @@ def build_keyword_to_cpack_rule_map(config_mapping: dict, cpack_rule_names: set)
     keyword_to_description = {}
 
     for mapping in config_mapping.get("mappings", []):
-        keyword = mapping["managedRuleIdentifier"]
+        # Support both old format (managedRuleIdentifier) and new format (identifier)
+        keyword = mapping.get("identifier") or mapping.get("managedRuleIdentifier")
+        source_type = mapping.get("sourceType", "AWS_Config")
 
-        # Find the rule that's in the conformance pack
+        # Find the rule that's in the conformance pack or mapped from Security Hub
         for rule in mapping.get("configRulesInAccount", []):
             rule_name = rule["ConfigRuleName"]
-            if rule_name in cpack_rule_names:
-                keyword_to_rule[keyword] = rule_name
-                # Store the description from the config mapping
-                keyword_to_description[keyword] = rule.get("Description", "")
-                break  # Use first matching rule in the conformance pack
+
+            # For AWS_Config sources, check if rule is in conformance pack
+            # For AWS_Security_Hub sources, always include the mapping
+            if rule_name in cpack_rule_names or source_type == "AWS_Security_Hub":
+                # Create composite key for Security Hub sources to avoid conflicts
+                if source_type == "AWS_Security_Hub":
+                    map_key = f"SecurityHub:{keyword}"
+                else:
+                    map_key = keyword
+
+                keyword_to_rule[map_key] = rule_name
+                keyword_to_description[map_key] = rule.get("Description", "")
+                break  # Use first matching rule
 
     return keyword_to_rule, keyword_to_description
 
@@ -231,7 +246,9 @@ def generate_compliance_report(
             "totalControls": 0,
             "totalEvidenceSources": 0,
             "awsConfigEvidenceSources": 0,
+            "awsSecurityHubEvidenceSources": 0,
             "mappedToConformancePack": 0,
+            "mappedFromSecurityHub": 0,
             "notMappedToConformancePack": 0,
             "conformancePackRulesNotInFramework": len(extra_rules),
             "compliantResources": 0,
@@ -273,7 +290,9 @@ def generate_compliance_report(
                 "summary": {
                     "totalEvidenceSources": 0,
                     "awsConfigSources": 0,
+                    "awsSecurityHubSources": 0,
                     "mappedToConformancePack": 0,
+                    "mappedFromSecurityHub": 0,
                     "compliantResources": 0,
                     "nonCompliantResources": 0,
                     "notApplicableResources": 0
@@ -319,8 +338,10 @@ def generate_compliance_report(
                         }
                     }
 
+                    source_type = evidence_source.get("sourceType")
+
                     # Handle AWS_Config sources
-                    if evidence_source.get("sourceType") == "AWS_Config":
+                    if source_type == "AWS_Config":
                         report["summary"]["awsConfigEvidenceSources"] += 1
                         control_report["summary"]["awsConfigSources"] += 1
 
@@ -333,6 +354,52 @@ def generate_compliance_report(
                             control_report["summary"]["mappedToConformancePack"] += 1
 
                             # Get compliance details (use cache)
+                            if config_rule_name not in compliance_cache:
+                                compliance_cache[config_rule_name] = get_conformance_pack_compliance_details(
+                                    client, conformance_pack_name, config_rule_name
+                                )
+
+                            eval_results = compliance_cache[config_rule_name]
+                            source_report["evaluationResults"] = eval_results
+
+                            # Count compliance
+                            for result in eval_results:
+                                compliance_type = result.get("complianceType", "")
+                                if compliance_type == "COMPLIANT":
+                                    source_report["complianceSummary"]["compliant"] += 1
+                                    control_report["summary"]["compliantResources"] += 1
+                                    control_set_report["summary"]["compliantResources"] += 1
+                                    report["summary"]["compliantResources"] += 1
+                                elif compliance_type == "NON_COMPLIANT":
+                                    source_report["complianceSummary"]["nonCompliant"] += 1
+                                    control_report["summary"]["nonCompliantResources"] += 1
+                                    control_set_report["summary"]["nonCompliantResources"] += 1
+                                    report["summary"]["nonCompliantResources"] += 1
+                                else:
+                                    source_report["complianceSummary"]["notApplicable"] += 1
+                                    control_report["summary"]["notApplicableResources"] += 1
+                                    report["summary"]["notApplicableResources"] += 1
+                        else:
+                            report["summary"]["notMappedToConformancePack"] += 1
+
+                    # Handle AWS_Security_Hub sources
+                    elif source_type == "AWS_Security_Hub":
+                        report["summary"]["awsSecurityHubEvidenceSources"] += 1
+                        control_report["summary"]["awsSecurityHubSources"] += 1
+
+                        # Use composite key for Security Hub lookups
+                        sec_hub_key = f"SecurityHub:{keyword_value}" if keyword_value else None
+
+                        if sec_hub_key and sec_hub_key in keyword_to_rule:
+                            config_rule_name = keyword_to_rule[sec_hub_key]
+                            source_report["configRuleName"] = config_rule_name
+                            source_report["inConformancePack"] = True
+                            source_report["securityHubControlId"] = keyword_value
+
+                            report["summary"]["mappedFromSecurityHub"] += 1
+                            control_report["summary"]["mappedFromSecurityHub"] += 1
+
+                            # Get compliance details from Config rule (use cache)
                             if config_rule_name not in compliance_cache:
                                 compliance_cache[config_rule_name] = get_conformance_pack_compliance_details(
                                     client, conformance_pack_name, config_rule_name
@@ -387,9 +454,11 @@ def print_report_summary(report: dict):
     print(f"Total Control Sets: {summary['totalControlSets']}")
     print(f"Total Controls: {summary['totalControls']}")
     print(f"Total Evidence Sources: {summary['totalEvidenceSources']}")
-    print(f"AWS Config Evidence Sources: {summary['awsConfigEvidenceSources']}")
+    print(f"  AWS Config Evidence Sources: {summary['awsConfigEvidenceSources']}")
+    print(f"  AWS Security Hub Evidence Sources: {summary.get('awsSecurityHubEvidenceSources', 0)}")
     print(f"Mapped to Conformance Pack: {summary['mappedToConformancePack']}")
-    print(f"NOT Mapped to Conformance Pack: {summary['notMappedToConformancePack']}")
+    print(f"Mapped from Security Hub: {summary.get('mappedFromSecurityHub', 0)}")
+    print(f"NOT Mapped: {summary['notMappedToConformancePack']}")
     print()
     print("RESOURCE COMPLIANCE:")
     print(f"  Compliant Resources: {summary['compliantResources']}")
@@ -413,7 +482,10 @@ def print_report_summary(report: dict):
 
                     for src in ctrl["evidenceSources"]:
                         if src["complianceSummary"]["nonCompliant"] > 0:
-                            print(f"      - {src['configRuleName']}: {src['complianceSummary']['nonCompliant']} non-compliant")
+                            rule_display = src['configRuleName']
+                            if src.get('securityHubControlId'):
+                                rule_display = f"[SecurityHub:{src['securityHubControlId']}] {rule_display}"
+                            print(f"      - {rule_display}: {src['complianceSummary']['nonCompliant']} non-compliant")
                             # Show first 3 non-compliant resources
                             non_compliant = [r for r in src["evaluationResults"] if r["complianceType"] == "NON_COMPLIANT"]
                             for r in non_compliant[:3]:
