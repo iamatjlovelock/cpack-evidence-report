@@ -922,7 +922,7 @@ def generate_summary_page(
         tpl_total = rules_in_pack_count  # fallback to calculated count
 
     # Row 2: Config Rules in Framework
-    in_template_label = "In Template" if template_mode else "Mapped to Pack"
+    in_template_label = "In Conformance Pack Template" if template_mode else "Mapped to Pack"
     missing_label = "Missing from Template" if template_mode else "Missing from Pack"
     html_parts.append(f"""
     <div class="summary-cards">
@@ -942,8 +942,8 @@ def generate_summary_page(
 """)
 
     # Row 3: Template Rules
-    tpl_rules_label = "Rules in Template" if template_mode else "Rules in Pack"
-    tpl_extra_label = "Extra Rules in Template" if template_mode else "Extra Rules in Pack"
+    tpl_rules_label = "Rules in Conformance Pack Template" if template_mode else "Rules in Pack"
+    tpl_extra_label = "Not Mapped in Framework" if template_mode else "Extra Rules in Pack"
     html_parts.append(f"""
     <div class="summary-cards">
         <div class="card">
@@ -973,7 +973,7 @@ def generate_summary_page(
             <div class="value">{sh_mapped}</div>
         </div>
         <div class="card">
-            <h3>Missing from Framework</h3>
+            <h3>Not Mapped in Framework</h3>
             <div class="value">{sh_missing}</div>
         </div>
     </div>
