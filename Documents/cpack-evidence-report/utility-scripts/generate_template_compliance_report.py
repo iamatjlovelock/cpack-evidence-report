@@ -251,78 +251,58 @@ def generate_template_compliance_report(
     return report
 
 
-def find_best_matching_template(framework_name: str, yaml_folder: str, framework_mapping_csv: str = None, templates_csv: str = None, framework_id: str = None) -> tuple:
+def find_best_matching_template(framework_name: str, yaml_folder: str, frameworks_excel: str = None, framework_id: str = None) -> tuple:
     """
-    Find the best matching YAML template for a framework using two-step CSV lookup.
+    Find the best matching YAML template for a framework using Frameworks.xlsx lookup.
 
-    Step 1: Look up framework name/ID in Framework-to-conformance-pack-template-mapping.csv
-            to get the conformance pack template name.
-    Step 2: Look up template name in Conformance pack templates.csv to get the YAML filename.
+    Step 1: Look up framework name/ID in Frameworks.xlsx to get the conformance pack template name.
+    Step 2: Find the YAML file by fuzzy matching against filenames in the yaml_folder.
 
     Args:
         framework_name: Name of the framework
         yaml_folder: Folder containing YAML templates
-        framework_mapping_csv: Path to Framework-to-conformance-pack-template-mapping.csv
-        templates_csv: Path to Conformance pack templates.csv
+        frameworks_excel: Path to Frameworks.xlsx
         framework_id: Framework ID for exact matching (optional)
 
     Returns:
         Tuple of (template_name, yaml_path) or (None, None) if not found
     """
-    import csv
-
-    # Step 1: Load framework-to-template mapping
-    # CSV format: Framework Name, Framework ID, Template Name, Other Templates, Notes
+    # Step 1: Load framework-to-template mapping from Excel
     framework_to_template = {}
     framework_id_to_template = {}
-    if framework_mapping_csv and os.path.exists(framework_mapping_csv):
+    if frameworks_excel and os.path.exists(frameworks_excel):
         try:
-            with open(framework_mapping_csv, "r", encoding="utf-8") as f:
-                reader = csv.reader(f)
-                next(reader)  # Skip header
-                for row in reader:
-                    if len(row) >= 3:
-                        fw = row[0].strip()
-                        fw_id = row[1].strip() if len(row) > 1 else ""
-                        template = row[2].strip() if len(row) > 2 else ""
-                        notes = row[4].strip() if len(row) > 4 else ""
+            import pandas as pd
+            df = pd.read_excel(frameworks_excel)
+            for _, row in df.iterrows():
+                fw = str(row.get('S Audit Manager Framework', '')).strip()
+                fw_id = str(row.get('Framework ID', '')).strip()
+                template = row.get('Conformance Pack Template name', '')
+                notes = str(row.get('Notes', '')).strip()
 
-                        # Skip if no template or marked as "No Equivalent"
-                        if not template or "no equivalent" in notes.lower():
-                            continue
+                # Skip if no template or NaN or marked as "No Equivalent"
+                if pd.isna(template) or not template or "no equivalent" in notes.lower():
+                    continue
 
-                        if fw:
-                            framework_to_template[fw] = template
-                        if fw_id:
-                            framework_id_to_template[fw_id] = template
-        except Exception:
-            pass
+                template = str(template).strip()
+                if fw and fw != 'nan':
+                    framework_to_template[fw] = template
+                if fw_id and fw_id != 'nan':
+                    framework_id_to_template[fw_id] = template
+        except ImportError:
+            print("Warning: pandas not installed, cannot load framework mappings from Excel")
+        except Exception as e:
+            print(f"Warning: Error loading framework mappings: {e}")
 
-    # Step 2: Load template-to-YAML mapping
-    template_to_yaml = {}
-    if templates_csv and os.path.exists(templates_csv):
-        try:
-            with open(templates_csv, "r", encoding="utf-8") as f:
-                reader = csv.reader(f)
-                next(reader)  # Skip header
-                for row in reader:
-                    if len(row) >= 2:
-                        template_name = row[0].strip()
-                        yaml_file = row[1].strip()
-                        if template_name and yaml_file:
-                            template_to_yaml[template_name] = yaml_file
-        except Exception:
-            pass
-
-    # Try to find matching framework in step 1
+    # Try to find matching framework
     # First try exact match by framework ID
     matched_template_name = None
     if framework_id and framework_id in framework_id_to_template:
         matched_template_name = framework_id_to_template[framework_id]
 
     # Fall back to fuzzy name matching
+    framework_normalized = re.sub(r'[^a-z0-9]', '', framework_name.lower())
     if not matched_template_name:
-        framework_normalized = re.sub(r'[^a-z0-9]', '', framework_name.lower())
         for key, template in framework_to_template.items():
             key_normalized = re.sub(r'[^a-z0-9]', '', key.lower())
             if key_normalized in framework_normalized or framework_normalized in key_normalized:
@@ -330,23 +310,8 @@ def find_best_matching_template(framework_name: str, yaml_folder: str, framework
                 break
 
     if matched_template_name:
-        # Step 2a: Try exact lookup in template-to-YAML mapping
-        if matched_template_name in template_to_yaml:
-            yaml_file = template_to_yaml[matched_template_name]
-            yaml_path = os.path.join(yaml_folder, yaml_file)
-            if os.path.exists(yaml_path):
-                return (yaml_file.replace(".yaml", ""), yaml_path)
-
-        # Step 2b: Try normalized lookup in template-to-YAML mapping
+        # Find YAML file by fuzzy matching against filenames
         template_normalized = re.sub(r'[^a-z0-9]', '', matched_template_name.lower())
-        for template_key, yaml_file in template_to_yaml.items():
-            key_normalized = re.sub(r'[^a-z0-9]', '', template_key.lower())
-            if template_normalized in key_normalized or key_normalized in template_normalized:
-                yaml_path = os.path.join(yaml_folder, yaml_file)
-                if os.path.exists(yaml_path):
-                    return (yaml_file.replace(".yaml", ""), yaml_path)
-
-        # Step 2c: Fallback to fuzzy matching against YAML filenames
         if os.path.exists(yaml_folder):
             for filename in os.listdir(yaml_folder):
                 if filename.endswith(".yaml"):
@@ -389,13 +354,8 @@ def main():
         default=None
     )
     parser.add_argument(
-        "--framework-mapping-csv",
-        help="Path to Framework-to-conformance-pack-template-mapping.csv",
-        default=None
-    )
-    parser.add_argument(
-        "--templates-csv",
-        help="Path to Conformance pack templates.csv",
+        "--frameworks-excel",
+        help="Path to Frameworks.xlsx for framework-to-template mapping",
         default=None
     )
     parser.add_argument(
@@ -418,9 +378,9 @@ def main():
 
         # Determine YAML template
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        yaml_folder = args.yaml_folder or os.path.join(script_dir, "conformance-packs", "conformance-pack-yamls")
-        framework_mapping_csv = args.framework_mapping_csv or os.path.join(script_dir, "conformance-packs", "Framework-to-conformance-pack-template-mapping.csv")
-        templates_csv = args.templates_csv or os.path.join(script_dir, "conformance-packs", "Conformance pack templates.csv")
+        project_dir = os.path.dirname(script_dir)
+        yaml_folder = args.yaml_folder or os.path.join(project_dir, "conformance-packs", "conformance-pack-yamls")
+        frameworks_excel = args.frameworks_excel or os.path.join(project_dir, "Frameworks.xlsx")
 
         no_template = False
         template_rules = {}
@@ -431,7 +391,7 @@ def main():
         else:
             print(f"Auto-detecting template for framework...")
             template_name, template_path = find_best_matching_template(
-                framework_name, yaml_folder, framework_mapping_csv, templates_csv, framework_id
+                framework_name, yaml_folder, frameworks_excel, framework_id
             )
             if not template_path:
                 print("  No matching conformance pack template found for this framework")

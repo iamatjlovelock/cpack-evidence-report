@@ -67,7 +67,7 @@ python run_compliance_workflow.py \
 - Understanding coverage gaps between frameworks and available templates
 - Comparing what a template provides vs. what a framework requires
 
-The template is auto-detected using `conformance-packs/Framework-to-conformance-pack-template-mapping.csv`. Override with `--template path/to/template.yaml`.
+The template is auto-detected using `Frameworks.xlsx`. Override with `--template path/to/template.yaml`.
 
 #### Frameworks Without Templates
 
@@ -429,18 +429,19 @@ python security-standard-controls/get_standard_controls.py \
 
 The summary report includes a cross-check section that shows conformance pack templates associated with the framework. This uses:
 
-- `conformance-packs/Framework-to-conformance-pack-template-mapping.csv` - Maps Audit Manager frameworks to conformance pack templates
+- `Frameworks.xlsx` - Maps Audit Manager frameworks to conformance pack templates and Security Hub standards
 - `conformance-packs/conformance-pack-yamls/` - Downloaded YAML templates from AWS Config Rules repository
 
-### Framework-to-Template Mapping CSV Format
+### Frameworks.xlsx Format
 
-The mapping CSV has the following columns:
+The Excel file has the following columns:
 
 | Column | Description |
 |--------|-------------|
-| Audit Manager Framework | Framework name as shown in AWS Audit Manager |
+| S Audit Manager Framework | Framework name as shown in AWS Audit Manager |
 | Framework ID | UUID of the framework (used for exact matching) |
 | Conformance Pack Template name | Primary conformance pack template for this framework |
+| Security Standard | Security Hub standard name for AWS_Security_Hub evidence source mapping |
 | Other relevant Conformance packs | Additional templates that may be useful |
 | Notes | Additional information (e.g., "No Equivalent" for frameworks without templates) |
 

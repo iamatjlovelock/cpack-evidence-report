@@ -27,11 +27,51 @@ CONTROL_CATALOG_FOLDER = "control-catalog"
 CONTROL_CATALOG_FILE = "detective-controls.json"
 CONFIG_RULES_CACHE_FILE = "account-config-rules.json"
 COMPLIANCE_DASHBOARDS_FOLDER = "compliance-dashboards"
+FRAMEWORKS_EXCEL_FILE = "Frameworks.xlsx"
+SECURITY_STANDARD_CONTROLS_FOLDER = "security-standard-controls"
 
 
 def get_python_executable():
     """Get the Python executable path."""
     return sys.executable
+
+
+def lookup_security_standard(framework_id: str) -> str | None:
+    """
+    Look up the Security Standard for a framework from Frameworks.xlsx.
+
+    Args:
+        framework_id: The AWS Audit Manager framework ID
+
+    Returns:
+        The security standard name (e.g., 'aws-foundational-security-best-practices-v100')
+        or None if not found or no mapping exists
+    """
+    try:
+        import pandas as pd
+    except ImportError:
+        print("Warning: pandas not installed, cannot look up Security Standard from Frameworks.xlsx")
+        return None
+
+    excel_path = os.path.join(os.path.dirname(__file__), FRAMEWORKS_EXCEL_FILE)
+    if not os.path.exists(excel_path):
+        print(f"Warning: {FRAMEWORKS_EXCEL_FILE} not found")
+        return None
+
+    try:
+        df = pd.read_excel(excel_path)
+        # Find row matching framework ID
+        match = df[df['Framework ID'] == framework_id]
+        if match.empty:
+            return None
+        security_standard = match['Security Standard'].iloc[0]
+        # Return None if NaN or empty
+        if pd.isna(security_standard) or not security_standard:
+            return None
+        return str(security_standard).strip()
+    except Exception as e:
+        print(f"Warning: Error reading {FRAMEWORKS_EXCEL_FILE}: {e}")
+        return None
 
 
 def run_script(script_name: str, args: list, description: str) -> bool:
@@ -78,16 +118,17 @@ def main():
 Example usage:
   # Run full workflow with PCI DSS framework
   # (uses cached framework controls if available)
+  # (Security Hub file auto-detected from Frameworks.xlsx)
   python run_compliance_workflow.py \\
     --framework-id 1f50f59a-fc3c-4b99-be05-6a79cf3f9538 \\
     --conformance-pack PCI-DSS-CPAC \\
     --output-prefix "PCI_DSS_v4"
 
-  # Run workflow with Security Hub standard mapping
+  # Run template analysis mode (no deployed conformance pack)
+  # Security Hub mapping auto-detected from Frameworks.xlsx
   python run_compliance_workflow.py \\
     --framework-id 07938c2d-aa7a-442e-913a-4777b4efddd3 \\
-    --conformance-pack none \\
-    --security-hub-file security-standard-controls/aws-foundational-security-best-practices-v100.json
+    --conformance-pack none
 
   # Force re-download of framework controls
   python run_compliance_workflow.py \\
@@ -181,24 +222,39 @@ Example usage:
     )
     parser.add_argument(
         "--security-hub-file",
-        help="Security Hub standard controls JSON file for mapping AWS_Security_Hub sources (from security-standard-controls/get_standard_controls.py)"
+        help="Override Security Hub standard controls JSON file (auto-detected from Frameworks.xlsx if not specified)"
     )
 
     args = parser.parse_args()
 
-    # Resolve security-hub-file path if just a name was provided
-    if args.security_hub_file:
-        if not os.path.exists(args.security_hub_file):
-            # Try adding .json extension
-            if os.path.exists(args.security_hub_file + ".json"):
-                args.security_hub_file = args.security_hub_file + ".json"
-            # Try looking in security-standard-controls folder
-            elif os.path.exists(os.path.join("security-standard-controls", args.security_hub_file)):
-                args.security_hub_file = os.path.join("security-standard-controls", args.security_hub_file)
-            elif os.path.exists(os.path.join("security-standard-controls", args.security_hub_file + ".json")):
-                args.security_hub_file = os.path.join("security-standard-controls", args.security_hub_file + ".json")
+    # Look up Security Hub file from Frameworks.xlsx if not explicitly provided
+    if not args.security_hub_file and args.framework_id:
+        security_standard = lookup_security_standard(args.framework_id)
+        if security_standard:
+            security_hub_path = os.path.join(
+                os.path.dirname(__file__),
+                SECURITY_STANDARD_CONTROLS_FOLDER,
+                f"{security_standard}.json"
+            )
+            if os.path.exists(security_hub_path):
+                args.security_hub_file = security_hub_path
+                print(f"Auto-detected Security Hub file: {security_hub_path}")
             else:
-                parser.error(f"Security Hub file not found: {args.security_hub_file}")
+                print(f"Warning: Security Hub file not found: {security_hub_path}")
+                print(f"  Run: python security-standard-controls/get_all_enabled_standard_controls.py")
+
+    # Resolve security-hub-file path if just a name was provided
+    if args.security_hub_file and not os.path.exists(args.security_hub_file):
+        # Try adding .json extension
+        if os.path.exists(args.security_hub_file + ".json"):
+            args.security_hub_file = args.security_hub_file + ".json"
+        # Try looking in security-standard-controls folder
+        elif os.path.exists(os.path.join(SECURITY_STANDARD_CONTROLS_FOLDER, args.security_hub_file)):
+            args.security_hub_file = os.path.join(SECURITY_STANDARD_CONTROLS_FOLDER, args.security_hub_file)
+        elif os.path.exists(os.path.join(SECURITY_STANDARD_CONTROLS_FOLDER, args.security_hub_file + ".json")):
+            args.security_hub_file = os.path.join(SECURITY_STANDARD_CONTROLS_FOLDER, args.security_hub_file + ".json")
+        else:
+            parser.error(f"Security Hub file not found: {args.security_hub_file}")
 
     # Check for template-only mode
     template_mode = args.conformance_pack.lower() == "none"

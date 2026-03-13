@@ -51,14 +51,12 @@ def make_anchor_id(text: str) -> str:
     return result
 
 
-def load_framework_template_mapping(csv_path: str) -> tuple:
+def load_framework_template_mapping(excel_path: str) -> tuple:
     """
-    Load the framework-to-conformance-pack-template mapping from CSV.
-
-    CSV format: Framework Name, Framework ID, Template Name, Other Templates, Notes
+    Load the framework-to-conformance-pack-template mapping from Frameworks.xlsx.
 
     Args:
-        csv_path: Path to Framework-to-conformance-pack-template-mapping.csv
+        excel_path: Path to Frameworks.xlsx
 
     Returns:
         Tuple of (name_mapping, id_mapping) where each is a dict mapping to template name
@@ -66,52 +64,54 @@ def load_framework_template_mapping(csv_path: str) -> tuple:
     name_mapping = {}
     id_mapping = {}
     try:
-        with open(csv_path, "r", encoding="utf-8") as f:
-            reader = csv.reader(f)
-            next(reader)  # Skip header
-            for row in reader:
-                if len(row) >= 3:
-                    framework = row[0].strip()
-                    framework_id = row[1].strip() if len(row) > 1 else ""
-                    template = row[2].strip() if len(row) > 2 else ""
-                    notes = row[4].strip() if len(row) > 4 else ""
+        import pandas as pd
+        df = pd.read_excel(excel_path)
+        for _, row in df.iterrows():
+            framework = str(row.get('S Audit Manager Framework', '')).strip()
+            framework_id = str(row.get('Framework ID', '')).strip()
+            template = row.get('Conformance Pack Template name', '')
+            notes = str(row.get('Notes', '')).strip()
 
-                    # Skip if no template or marked as "No Equivalent"
-                    if not template or "no equivalent" in notes.lower():
-                        continue
+            # Skip if no template or NaN or marked as "No Equivalent"
+            if pd.isna(template) or not template or "no equivalent" in notes.lower():
+                continue
 
-                    if framework:
-                        name_mapping[framework] = template
-                    if framework_id:
-                        id_mapping[framework_id] = template
+            template = str(template).strip()
+            if framework and framework != 'nan':
+                name_mapping[framework] = template
+            if framework_id and framework_id != 'nan':
+                id_mapping[framework_id] = template
+    except ImportError:
+        print("Warning: pandas not installed, cannot load framework mappings from Excel")
     except FileNotFoundError:
         pass
+    except Exception as e:
+        print(f"Warning: Error loading framework mappings: {e}")
     return name_mapping, id_mapping
 
 
-def load_templates_to_yaml_mapping(csv_path: str) -> dict:
+def load_templates_to_yaml_mapping(yaml_folder: str) -> dict:
     """
-    Load the template-to-YAML filename mapping from CSV.
+    Build template-to-YAML filename mapping by scanning the YAML folder.
 
     Args:
-        csv_path: Path to Conformance pack templates.csv
+        yaml_folder: Path to folder containing YAML templates
 
     Returns:
-        Dict mapping template name to YAML filename
+        Dict mapping normalized template name to YAML filename
     """
     mapping = {}
-    try:
-        with open(csv_path, "r", encoding="utf-8") as f:
-            reader = csv.reader(f)
-            next(reader)  # Skip header
-            for row in reader:
-                if len(row) >= 2:
-                    template_name = row[0].strip()
-                    yaml_file = row[1].strip()
-                    if template_name and yaml_file:
-                        mapping[template_name] = yaml_file
-    except FileNotFoundError:
-        pass
+    if not os.path.exists(yaml_folder):
+        return mapping
+
+    for filename in os.listdir(yaml_folder):
+        if filename.endswith('.yaml'):
+            # Create a normalized key from the filename
+            # e.g., "Operational-Best-Practices-for-ACSC-Essential8.yaml"
+            # -> "operational best practices for acsc essential8"
+            name_part = filename.replace('.yaml', '').replace('-', ' ').lower()
+            mapping[name_part] = filename
+
     return mapping
 
 
@@ -1559,23 +1559,23 @@ def main():
         extra_rules_report_link = f"{link_prefix}_extra_rules.html"
         control_catalog_link = f"{link_prefix}_control_catalog.html"
 
-        # Look up conformance pack templates for this framework using two-step CSV lookup
+        # Look up conformance pack templates for this framework using Frameworks.xlsx
         matching_templates = []
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        framework_mapping_csv = os.path.join(script_dir, "conformance-packs", "Framework-to-conformance-pack-template-mapping.csv")
-        templates_csv = os.path.join(script_dir, "conformance-packs", "Conformance pack templates.csv")
-        yaml_folder = os.path.join(script_dir, "conformance-packs", "conformance-pack-yamls")
+        project_dir = os.path.dirname(script_dir)
+        frameworks_excel = os.path.join(project_dir, "Frameworks.xlsx")
+        yaml_folder = os.path.join(project_dir, "conformance-packs", "conformance-pack-yamls")
 
-        if os.path.exists(framework_mapping_csv):
+        if os.path.exists(frameworks_excel):
             framework_name = compliance_report.get("frameworkName", "")
             framework_id = compliance_report.get("frameworkId", "")
-            # Step 1: Load framework-to-template mapping
-            name_mapping, id_mapping = load_framework_template_mapping(framework_mapping_csv)
+            # Load framework-to-template mapping from Excel
+            name_mapping, id_mapping = load_framework_template_mapping(frameworks_excel)
             template_name = find_matching_template(framework_name, name_mapping, id_mapping, framework_id)
 
             if template_name:
-                # Step 2: Load template-to-YAML mapping
-                templates_to_yaml = load_templates_to_yaml_mapping(templates_csv) if os.path.exists(templates_csv) else {}
+                # Find YAML files by scanning the folder
+                templates_to_yaml = load_templates_to_yaml_mapping(yaml_folder)
                 yaml_files = find_template_yaml_files(template_name, yaml_folder, templates_to_yaml)
                 for name, path in yaml_files:
                     rule_count = count_config_rules_in_template(path)
