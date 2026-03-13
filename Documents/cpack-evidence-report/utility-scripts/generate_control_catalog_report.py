@@ -708,19 +708,10 @@ def generate_control_catalog_html(
             color: #c53030;
             border: 1px solid #feb2b2;
         }}
-        .not-in-catalog {{
-            background: #fff5f5;
-            border-left-color: #fc8181;
-        }}
-        .not-in-catalog h3 {{
-            color: #c53030;
-        }}
-        .security-hub {{
-            background: #faf5ff;
-            border-left-color: #9f7aea;
-        }}
-        .security-hub h3 {{
-            color: #553c9a;
+        .badge-catalog {{
+            background: #e6fffa;
+            color: #234e52;
+            border: 1px solid #81e6d9;
         }}
         .control-meta {{
             display: flex;
@@ -762,13 +753,6 @@ def generate_control_catalog_html(
         }}
         .control-remediation a:hover {{
             text-decoration: underline;
-        }}
-        .mapped-to-framework {{
-            background: #f0fff4;
-            border-left-color: #48bb78;
-        }}
-        .mapped-to-framework h3 {{
-            color: #22543d;
         }}
         .info-box {{
             background: #faf5ff;
@@ -989,7 +973,7 @@ def generate_control_catalog_html(
             # Check if mapped to current framework
             current_mappings = [m for m in mappings if is_current_framework(m)]
             other_mappings = [m for m in mappings if not is_current_framework(m)]
-            entry_class = "control-entry mapped-to-framework" if current_mappings else "control-entry"
+            entry_class = "control-entry"
 
             # Build mappings HTML
             mappings_html = ""
@@ -1048,6 +1032,7 @@ def generate_control_catalog_html(
             in_template = identifier in identifiers_in_template
             in_standard = identifier in identifiers_in_standard
             badges_html = '<div class="source-badges">'
+            badges_html += '<span class="source-badge badge-catalog">In Control Catalog</span>'
             if in_framework:
                 badges_html += '<span class="source-badge badge-framework">In Framework</span>'
             else:
@@ -1101,6 +1086,7 @@ def generate_control_catalog_html(
             in_template = identifier in identifiers_in_template
             in_standard = identifier in identifiers_in_standard
             badges_html = '<div class="source-badges">'
+            badges_html += '<span class="source-badge badge-not-in">Not in Control Catalog</span>'
             if in_framework:
                 badges_html += '<span class="source-badge badge-framework">In Framework</span>'
             else:
@@ -1148,7 +1134,7 @@ def generate_control_catalog_html(
                     remediation_html = f'<div class="control-remediation"><a href="{escape_html(sh_remediation)}" target="_blank">Remediation Guide</a></div>'
 
                 html_content += f"""
-        <div class="control-entry security-hub" id="{anchor}">
+        <div class="control-entry" id="{anchor}">
             <h3>{sh_title}</h3>
             <div class="control-identifier">{escape_html(identifier)}</div>
             <div class="control-meta">
@@ -1166,7 +1152,7 @@ def generate_control_catalog_html(
 """
             else:
                 html_content += f"""
-        <div class="control-entry not-in-catalog" id="{anchor}">
+        <div class="control-entry" id="{anchor}">
             <h3>{escape_html(identifier)}</h3>
             <div class="control-identifier">{escape_html(identifier)}</div>
             {badges_html}

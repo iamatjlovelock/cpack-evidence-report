@@ -190,6 +190,256 @@ def count_security_hub_sources_in_framework(compliance_report: dict) -> set:
     return security_hub_controls
 
 
+def count_framework_rules_in_standard(compliance_report: dict, security_hub_normalized_ids: set) -> int:
+    """
+    Count unique framework rules that are in the Security Hub standard.
+
+    This counts both:
+    - AWS_Security_Hub sources (by control ID)
+    - AWS_Config sources whose keywordValue matches a normalized Security Hub identifier
+
+    Args:
+        compliance_report: The compliance report data
+        security_hub_normalized_ids: Set of normalized identifiers from Security Hub standard
+
+    Returns:
+        Count of unique framework rules that are in the standard
+    """
+    if not security_hub_normalized_ids:
+        return 0
+
+    rules_in_standard = set()
+    for control_set in compliance_report.get("controlSets", []):
+        for control in control_set.get("controls", []):
+            for source in control.get("evidenceSources", []):
+                source_type = source.get("sourceType")
+
+                if source_type == "AWS_Security_Hub":
+                    # Security Hub sources are always in the standard
+                    keyword = source.get("keywordValue") or source.get("securityHubControlId")
+                    if keyword:
+                        rules_in_standard.add(keyword)
+
+                elif source_type == "AWS_Config":
+                    # Check if AWS_Config source matches a Security Hub identifier
+                    keyword = source.get("keywordValue", "")
+                    if keyword and keyword.upper() in security_hub_normalized_ids:
+                        rules_in_standard.add(keyword)
+
+    return len(rules_in_standard)
+
+
+def count_framework_rules_not_covered(compliance_report: dict, security_hub_normalized_ids: set, has_template: bool = True) -> int:
+    """
+    Count unique framework rules that are NOT in template AND NOT in Security Hub standard.
+
+    Args:
+        compliance_report: The compliance report data
+        security_hub_normalized_ids: Set of normalized identifiers from Security Hub standard (can be None)
+        has_template: Whether a conformance pack template is configured
+
+    Returns:
+        Count of unique framework rules not covered by template or standard
+    """
+    not_covered_rules = set()
+
+    for control_set in compliance_report.get("controlSets", []):
+        for control in control_set.get("controls", []):
+            for source in control.get("evidenceSources", []):
+                source_type = source.get("sourceType")
+
+                # Check if in template (only if template is configured)
+                in_template = source.get("inConformancePack", False) if has_template else False
+
+                # Check if in standard
+                in_standard = False
+                if source_type == "AWS_Security_Hub":
+                    in_standard = True
+                elif source_type == "AWS_Config" and security_hub_normalized_ids:
+                    keyword = source.get("keywordValue", "")
+                    if keyword and keyword.upper() in security_hub_normalized_ids:
+                        in_standard = True
+
+                # Determine if covered
+                # If template is configured, must be in template OR standard
+                # If only standard is configured, must be in standard
+                # If only template is configured, must be in template
+                if has_template and security_hub_normalized_ids:
+                    is_covered = in_template or in_standard
+                elif has_template:
+                    is_covered = in_template
+                elif security_hub_normalized_ids:
+                    is_covered = in_standard
+                else:
+                    is_covered = True  # Nothing to check against
+
+                if not is_covered:
+                    keyword = source.get("keywordValue", "")
+                    if keyword:
+                        not_covered_rules.add(keyword)
+
+    return len(not_covered_rules)
+
+
+def normalize_config_rule_name(rule_name: str) -> str:
+    """
+    Normalize a Config rule name for comparison between Security Hub and template formats.
+
+    Security Hub format: securityhub-acm-certificate-expiration-check-530f2472
+    Template format: ACM_CERTIFICATE_EXPIRATION_CHECK
+
+    Returns normalized form: acm_certificate_expiration_check
+    """
+    if not rule_name:
+        return ""
+
+    name = rule_name.lower()
+
+    # Strip 'securityhub-' prefix
+    if name.startswith("securityhub-"):
+        name = name[12:]
+
+    # Strip trailing hash (8 hex characters after last hyphen)
+    # Pattern: -[0-9a-f]{8}$
+    if len(name) > 9 and name[-9] == '-':
+        suffix = name[-8:]
+        if all(c in '0123456789abcdef' for c in suffix):
+            name = name[:-9]
+
+    # Convert hyphens to underscores
+    name = name.replace('-', '_')
+
+    return name
+
+
+def extract_template_rule_identifiers(yaml_path: str) -> set:
+    """
+    Extract Config rule SourceIdentifiers from a conformance pack YAML template.
+
+    Args:
+        yaml_path: Path to the YAML file
+
+    Returns:
+        Set of SourceIdentifier values
+    """
+    identifiers = set()
+    try:
+        with open(yaml_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Find all SourceIdentifier values
+        for match in re.finditer(r'SourceIdentifier:\s*(\S+)', content):
+            identifier = match.group(1).strip()
+            if identifier:
+                identifiers.add(identifier)
+    except Exception:
+        pass
+
+    return identifiers
+
+
+def get_security_hub_config_rules(standard_file_path: str) -> set:
+    """
+    Get Config rule names from a Security Hub standard JSON file.
+
+    Args:
+        standard_file_path: Path to the Security Hub standard JSON file
+
+    Returns:
+        Set of config_rule values
+    """
+    config_rules = set()
+    try:
+        with open(standard_file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for control in data.get("controls", []):
+            config_rule = control.get("config_rule")
+            if config_rule:
+                config_rules.add(config_rule)
+    except Exception:
+        pass
+
+    return config_rules
+
+
+def get_security_hub_normalized_identifiers(standard_file_path: str) -> set:
+    """
+    Get normalized Config rule identifiers from a Security Hub standard JSON file.
+
+    This normalizes Security Hub config rule names (e.g., securityhub-vpc-sg-open-only-to-authorized-ports-dee04c80)
+    to standard identifiers (e.g., VPC_SG_OPEN_ONLY_TO_AUTHORIZED_PORTS) for matching against
+    AWS_Config sources in the framework.
+
+    Args:
+        standard_file_path: Path to the Security Hub standard JSON file
+
+    Returns:
+        Set of normalized identifier strings (uppercase with underscores)
+    """
+    normalized_ids = set()
+    try:
+        with open(standard_file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for control in data.get("controls", []):
+            config_rule = control.get("config_rule")
+            if config_rule:
+                normalized = normalize_config_rule_name(config_rule)
+                if normalized:
+                    # Convert to uppercase for matching
+                    normalized_ids.add(normalized.upper())
+    except Exception:
+        pass
+
+    return normalized_ids
+
+
+def calculate_template_standard_intersection(template_yaml_path: str, security_hub_file_path: str) -> dict:
+    """
+    Calculate the intersection between template rules and Security Hub standard rules.
+
+    Args:
+        template_yaml_path: Path to conformance pack YAML template
+        security_hub_file_path: Path to Security Hub standard JSON file
+
+    Returns:
+        Dict with intersection stats:
+        - template_rules: total rules in template
+        - standard_rules: total rules in standard
+        - intersection: count of matching rules
+        - template_only: rules only in template
+        - standard_only: rules only in standard
+    """
+    if not template_yaml_path or not security_hub_file_path:
+        return None
+
+    # Extract and normalize template rules
+    template_identifiers = extract_template_rule_identifiers(template_yaml_path)
+    template_normalized = {normalize_config_rule_name(r): r for r in template_identifiers}
+
+    # Extract and normalize Security Hub rules
+    sh_config_rules = get_security_hub_config_rules(security_hub_file_path)
+    sh_normalized = {normalize_config_rule_name(r): r for r in sh_config_rules}
+
+    # Calculate intersection using normalized names
+    template_keys = set(template_normalized.keys())
+    sh_keys = set(sh_normalized.keys())
+
+    intersection = template_keys & sh_keys
+    template_only = template_keys - sh_keys
+    standard_only = sh_keys - template_keys
+
+    return {
+        "template_rules": len(template_identifiers),
+        "standard_rules": len(sh_config_rules),
+        "intersection": len(intersection),
+        "template_only": len(template_only),
+        "standard_only": len(standard_only),
+        "intersection_rules": intersection,
+        "template_only_rules": template_only,
+        "standard_only_rules": standard_only
+    }
+
+
 def load_templates_to_yaml_mapping(yaml_folder: str) -> dict:
     """
     Build template-to-YAML filename mapping by scanning the YAML folder.
@@ -656,7 +906,7 @@ def build_evidence_source_data(compliance_report: dict) -> dict:
     Build a dictionary of evidence sources with their resources.
 
     Returns:
-        Dict mapping config rule name to evidence source data including resources
+        Dict mapping config rule name (or keywordValue for Security Hub) to evidence source data
     """
     evidence_sources = {}
 
@@ -666,15 +916,21 @@ def build_evidence_source_data(compliance_report: dict) -> dict:
                 if source.get("sourceType") not in ["AWS_Config", "AWS_Security_Hub"]:
                     continue
 
-                rule_name = source.get("configRuleName")
+                original_config_rule = source.get("configRuleName")
+                rule_name = original_config_rule
+                # For Security Hub sources, use keywordValue (control ID) as fallback key
                 if not rule_name:
-                    continue
+                    if source.get("sourceType") == "AWS_Security_Hub":
+                        rule_name = source.get("keywordValue")
+                    if not rule_name:
+                        continue
 
                 if rule_name not in evidence_sources:
                     evidence_sources[rule_name] = {
-                        "configRuleName": rule_name,
+                        "configRuleName": original_config_rule,  # Store original, may be None
                         "sourceName": source.get("sourceName"),
                         "sourceDescription": source.get("sourceDescription"),
+                        "sourceType": source.get("sourceType"),
                         "keywordValue": source.get("keywordValue"),
                         "inConformancePack": source.get("inConformancePack", False),
                         "resources": {},
@@ -759,7 +1015,9 @@ def generate_summary_page(
     security_standard: str = None,
     conformance_template: str = None,
     template_total_rules: int = None,
-    security_hub_data: dict = None
+    security_hub_data: dict = None,
+    template_standard_intersection: dict = None,
+    security_hub_normalized_ids: set = None
 ) -> str:
     """Generate the summary report HTML page.
 
@@ -775,6 +1033,8 @@ def generate_summary_page(
         conformance_template: Name of the mapped conformance template
         template_total_rules: Total rules in the conformance pack template
         security_hub_data: Dict with 'total_controls', 'control_ids' from Security Hub standard
+        template_standard_intersection: Dict with intersection stats between template and standard
+        security_hub_normalized_ids: Set of normalized identifiers from Security Hub standard
     """
 
     summary = compliance_report.get("summary", {})
@@ -900,15 +1160,15 @@ def generate_summary_page(
     sh_total = "N/A"
     sh_mapped = "N/A"
     sh_missing = "N/A"
-    if security_hub_data and security_hub_data.get("control_ids"):
-        sh_standard_controls = security_hub_data["control_ids"]
-        sh_total = security_hub_data.get("total_controls", len(sh_standard_controls))
-        # Get Security Hub controls referenced in framework
-        framework_sh_controls = count_security_hub_sources_in_framework(compliance_report)
-        # Mapped = framework controls that are in the standard
-        sh_mapped = len(framework_sh_controls & sh_standard_controls)
-        # Missing = standard controls not referenced in framework
-        sh_missing = len(sh_standard_controls - framework_sh_controls)
+    if security_hub_data and security_hub_normalized_ids:
+        sh_total = security_hub_data.get("total_controls", len(security_hub_normalized_ids))
+        # Mapped = framework rules that match Security Hub standard (using normalized identifiers)
+        sh_mapped = count_framework_rules_in_standard(compliance_report, security_hub_normalized_ids)
+        # Missing = standard controls not covered by framework rules
+        # This is total standard controls minus the number of unique normalized identifiers in framework
+        sh_missing = len(security_hub_normalized_ids) - sh_mapped
+        if sh_missing < 0:
+            sh_missing = 0
     elif not security_standard or security_standard == "None":
         pass  # Keep N/A values
 
@@ -921,9 +1181,30 @@ def generate_summary_page(
     elif conformance_template and not no_template_available:
         tpl_total = rules_in_pack_count  # fallback to calculated count
 
-    # Row 2: Config Rules in Framework
-    in_template_label = "In Conformance Pack Template" if template_mode else "Mapped to Pack"
-    missing_label = "Missing from Template" if template_mode else "Missing from Pack"
+    # Config Rules Coverage Description
+    html_parts.append("""
+    <div class="section" style="padding: 15px 20px; margin-bottom: 20px;">
+        <p style="color: #4a5568; font-size: 14px; margin: 0; line-height: 1.6;">
+            <strong>Config Rules Coverage:</strong> The cards below show the overlap between Config rules in the
+            Audit Manager framework, the Conformance Pack template, and the Security Hub standard.
+            "Intersection" shows rules that appear in both sources. "Not Covered" shows framework rules
+            that do not appear in either the template or standard. "Missing from Framework" shows rules
+            in the template or standard that are not referenced by the framework.
+            The final row shows the direct comparison between Template and Standard rules (normalized for comparison).
+        </p>
+    </div>
+""")
+
+    # Calculate rules not covered by either template or standard
+    # Use proper set-based calculation to avoid double-counting
+    has_template = bool(conformance_template) and not no_template_available
+    if has_template or security_hub_normalized_ids:
+        not_covered = count_framework_rules_not_covered(compliance_report, security_hub_normalized_ids, has_template)
+        not_covered_display = not_covered
+    else:
+        not_covered_display = "N/A"
+
+    # Row 1: Framework Rules
     html_parts.append(f"""
     <div class="summary-cards">
         <div class="card">
@@ -931,50 +1212,79 @@ def generate_summary_page(
             <div class="value">{total_config_rules}</div>
         </div>
         <div class="card">
-            <h3>{in_template_label}</h3>
-            <div class="value">{mapped_rules_count}</div>
+            <h3>Intersection with Template</h3>
+            <div class="value">{mapped_rules_count if conformance_template else "N/A"}</div>
         </div>
         <div class="card">
-            <h3>{missing_label}</h3>
-            <div class="value">{"<a href='" + gap_report_link + "'>" if gap_report_link else ""}{unmapped_rules_count}{"</a>" if gap_report_link else ""}</div>
+            <h3>Intersection with Standard</h3>
+            <div class="value">{sh_mapped}</div>
+        </div>
+        <div class="card">
+            <h3>Not Covered</h3>
+            <div class="value">{not_covered_display}</div>
         </div>
     </div>
 """)
 
-    # Row 3: Template Rules
-    tpl_rules_label = "Rules in Conformance Pack Template" if template_mode else "Rules in Pack"
-    tpl_extra_label = "Not Mapped in Framework" if template_mode else "Extra Rules in Pack"
+    # Row 2: Template Rules
     html_parts.append(f"""
     <div class="summary-cards">
         <div class="card">
-            <h3>{tpl_rules_label}</h3>
+            <h3>Config Rules in Template</h3>
             <div class="value">{tpl_total}</div>
         </div>
         <div class="card">
-            <h3>Mapped in Framework</h3>
-            <div class="value">{tpl_mapped if tpl_mapped != "N/A" else "N/A"}</div>
+            <h3>Intersection with Framework</h3>
+            <div class="value">{tpl_mapped}</div>
         </div>
         <div class="card">
-            <h3>{tpl_extra_label}</h3>
+            <h3>Missing from Framework</h3>
             <div class="value">{"<a href='" + extra_rules_report_link + "'>" if extra_rules_report_link and tpl_missing != "N/A" else ""}{tpl_missing}{"</a>" if extra_rules_report_link and tpl_missing != "N/A" else ""}</div>
         </div>
     </div>
 """)
 
-    # Row 4: Security Standard Rules
+    # Row 3: Security Standard Rules
     html_parts.append(f"""
     <div class="summary-cards">
         <div class="card">
-            <h3>Rules in Security Standard</h3>
+            <h3>Config Rules in Standard</h3>
             <div class="value">{sh_total}</div>
         </div>
         <div class="card">
-            <h3>Mapped in Framework</h3>
+            <h3>Intersection with Framework</h3>
             <div class="value">{sh_mapped}</div>
         </div>
         <div class="card">
-            <h3>Not Mapped in Framework</h3>
+            <h3>Missing from Framework</h3>
             <div class="value">{sh_missing}</div>
+        </div>
+    </div>
+""")
+
+    # Row 4: Template ∩ Standard (cross-check between template and security standard)
+    if template_standard_intersection:
+        tpl_std_intersection = template_standard_intersection.get("intersection", 0)
+        tpl_std_tpl_only = template_standard_intersection.get("template_only", 0)
+        tpl_std_std_only = template_standard_intersection.get("standard_only", 0)
+    else:
+        tpl_std_intersection = "N/A"
+        tpl_std_tpl_only = "N/A"
+        tpl_std_std_only = "N/A"
+
+    html_parts.append(f"""
+    <div class="summary-cards">
+        <div class="card">
+            <h3>Template ∩ Standard</h3>
+            <div class="value">{tpl_std_intersection}</div>
+        </div>
+        <div class="card">
+            <h3>Only in Template</h3>
+            <div class="value">{tpl_std_tpl_only}</div>
+        </div>
+        <div class="card">
+            <h3>Only in Standard</h3>
+            <div class="value">{tpl_std_std_only}</div>
         </div>
     </div>
 """)
@@ -1093,9 +1403,10 @@ def generate_summary_page(
             # Get all AWS_Config and AWS_Security_Hub sources
             all_config_sources = [s for s in sources if s.get("sourceType") in ["AWS_Config", "AWS_Security_Hub"]]
 
-            # Separate into mapped (in pack) and missing (not in pack)
-            mapped_sources = [s for s in all_config_sources if s.get("inConformancePack")]
-            missing_sources = [s for s in all_config_sources if not s.get("inConformancePack")]
+            # Separate into mapped (in pack or Security Hub) and missing (Config rules not in pack)
+            # Security Hub sources are always "mapped" since they link to evidence page
+            mapped_sources = [s for s in all_config_sources if s.get("inConformancePack") or s.get("sourceType") == "AWS_Security_Hub"]
+            missing_sources = [s for s in all_config_sources if not s.get("inConformancePack") and s.get("sourceType") != "AWS_Security_Hub"]
 
             if not all_config_sources:
                 # Show control with no Config rule references
@@ -1129,15 +1440,23 @@ def generate_summary_page(
                 # Use sourceName, fall back to keywordValue or configRuleName
                 source_name_raw = source.get("sourceName") or source.get("keywordValue") or source.get("configRuleName") or ""
                 source_name = escape_html(source_name_raw)
-                rule_name = source.get("configRuleName", "")
+                # For Security Hub sources, use keywordValue as anchor if configRuleName is not set
+                rule_name = source.get("configRuleName") or ""
+                if not rule_name and source.get("sourceType") == "AWS_Security_Hub":
+                    rule_name = source.get("keywordValue", "")
                 rule_anchor = make_anchor_id(rule_name)
 
                 ctrl_cell = ctrl_name if first else ""
                 first = False
 
-                # Check if this is a Security Hub standard source
+                # Check if this rule is in the Security Hub standard
+                # Either: sourceType is AWS_Security_Hub, OR keywordValue matches a normalized Security Hub identifier
                 is_security_hub = source.get("sourceType") == "AWS_Security_Hub"
-                in_standard_badge = '<span class="badge compliant">Yes</span>' if is_security_hub else '<span class="badge not-applicable">No</span>'
+                keyword_value = source.get("keywordValue", "")
+                is_in_standard = is_security_hub or (security_hub_normalized_ids and keyword_value.upper() in security_hub_normalized_ids)
+                in_standard_badge = '<span class="badge compliant">Yes</span>' if is_in_standard else '<span class="badge not-applicable">No</span>'
+                # In Template badge - only Yes if actually in conformance pack (not for Security Hub sources)
+                in_template_badge = '<span class="badge compliant">Yes</span>' if source.get("inConformancePack") else '<span class="badge not-applicable">No</span>'
 
                 if template_mode:
                     html_parts.append(f"""
@@ -1145,7 +1464,7 @@ def generate_summary_page(
                         <td>{ctrl_cell}</td>
                         <td><a href="{prefix}_evidence.html#{rule_anchor}">{source_name}</a></td>
                         <td style="text-align: center;">{in_standard_badge}</td>
-                        <td style="text-align: center;"><span class="badge compliant">Yes</span></td>
+                        <td style="text-align: center;">{in_template_badge}</td>
                     </tr>
 """)
                 else:
@@ -1182,9 +1501,11 @@ def generate_summary_page(
                 ctrl_cell = ctrl_name if first else ""
                 first = False
 
-                # Check if this is a Security Hub standard source
+                # Check if this rule is in the Security Hub standard
+                # Either: sourceType is AWS_Security_Hub, OR keywordValue matches a normalized Security Hub identifier
                 is_security_hub = source.get("sourceType") == "AWS_Security_Hub"
-                in_standard_badge = '<span class="badge compliant">Yes</span>' if is_security_hub else '<span class="badge not-applicable">No</span>'
+                is_in_standard = is_security_hub or (security_hub_normalized_ids and keyword.upper() in security_hub_normalized_ids)
+                in_standard_badge = '<span class="badge compliant">Yes</span>' if is_in_standard else '<span class="badge not-applicable">No</span>'
 
                 # Link to gap report if available, or to control catalog if no template available
                 if gap_report_link and not no_template_available:
@@ -1342,8 +1663,24 @@ def generate_evidence_page(
 
         # Build catalog link for keyword
         keyword_raw = source.get("keywordValue", "")
-        keyword_anchor = make_anchor_id(keyword_raw)
-        keyword_link = f'<a href="{control_catalog_link}#{keyword_anchor}">{keyword}</a>' if control_catalog_link and keyword_raw else keyword
+        source_type = source.get("sourceType", "")
+        config_rule_name = source.get("configRuleName", "")
+
+        # For Security Hub sources, derive the catalog identifier from the actual config rule name (not the key)
+        # Only create link if we have a proper config rule mapping
+        if source_type == "AWS_Security_Hub":
+            if config_rule_name and config_rule_name.startswith("securityhub-"):
+                # Normalize: securityhub-cloudwatch-alarm-action-check-xxx -> CLOUDWATCH_ALARM_ACTION_CHECK
+                catalog_identifier = normalize_config_rule_name(config_rule_name).upper()
+                catalog_anchor = make_anchor_id(catalog_identifier)
+                keyword_link = f'<a href="{control_catalog_link}#{catalog_anchor}">{keyword}</a>' if control_catalog_link else keyword
+            else:
+                # No config rule mapping - display without link
+                keyword_link = keyword
+        else:
+            # For AWS_Config sources, use keywordValue directly
+            catalog_anchor = make_anchor_id(keyword_raw)
+            keyword_link = f'<a href="{control_catalog_link}#{catalog_anchor}">{keyword}</a>' if control_catalog_link and keyword_raw else keyword
 
         # Build stats section (only show in non-template mode)
         if template_mode:
@@ -1768,18 +2105,38 @@ def main():
 
         # Load Security Hub standard data
         security_hub_data = None
+        security_hub_normalized_ids = None
+        sh_file = None
         if security_standard:
             sh_file = find_security_hub_standard_file(security_standard, project_dir)
             if sh_file:
                 security_hub_data = load_security_hub_standard(sh_file)
+                security_hub_normalized_ids = get_security_hub_normalized_identifiers(sh_file)
                 if security_hub_data:
                     print(f"  Security Hub standard: {security_hub_data.get('total_controls', 0)} controls")
+
+        # Calculate Template ∩ Standard intersection
+        template_standard_intersection = None
+        if matching_templates and sh_file:
+            # Get the first template's YAML path
+            template_yaml_path = None
+            for item in matching_templates:
+                if len(item) == 3:
+                    _, _, rel_path = item
+                    # Convert relative path back to absolute
+                    template_yaml_path = os.path.join(os.path.dirname(os.path.abspath(args.report_file)), rel_path)
+                    break
+            if template_yaml_path and os.path.exists(template_yaml_path):
+                template_standard_intersection = calculate_template_standard_intersection(template_yaml_path, sh_file)
+                if template_standard_intersection:
+                    print(f"  Template ∩ Standard: {template_standard_intersection.get('intersection', 0)} rules in common")
 
         # Summary page
         summary_html = generate_summary_page(
             compliance_report, evidence_sources, link_prefix, gap_report_link,
             extra_rules_report_link, matching_templates, template_mode,
-            security_standard, conformance_template, template_total_rules, security_hub_data
+            security_standard, conformance_template, template_total_rules, security_hub_data,
+            template_standard_intersection, security_hub_normalized_ids
         )
         summary_file = f"{output_prefix}_summary.html"
         with open(summary_file, "w", encoding="utf-8") as f:
