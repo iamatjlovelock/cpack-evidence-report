@@ -281,6 +281,223 @@ def count_framework_rules_not_covered(compliance_report: dict, security_hub_norm
     return len(not_covered_rules)
 
 
+def calculate_venn_diagram_data(
+    compliance_report: dict,
+    security_hub_normalized_ids: set,
+    template_identifiers: set,
+    has_template: bool = True
+) -> dict:
+    """
+    Calculate the counts for each segment of a 3-way Venn diagram.
+
+    Args:
+        compliance_report: The compliance report data
+        security_hub_normalized_ids: Set of normalized identifiers from Security Hub standard
+        template_identifiers: Set of rule identifiers from conformance pack template
+        has_template: Whether a conformance pack template is configured
+
+    Returns:
+        Dict with counts for each Venn diagram segment:
+        - f_only: Framework only
+        - t_only: Template only
+        - s_only: Standard only
+        - f_t: Framework & Template (not Standard)
+        - f_s: Framework & Standard (not Template)
+        - t_s: Template & Standard (not Framework)
+        - f_t_s: Framework & Template & Standard (all three)
+    """
+    if not security_hub_normalized_ids:
+        security_hub_normalized_ids = set()
+    if not template_identifiers:
+        template_identifiers = set()
+
+    # Normalize template identifiers for comparison
+    template_normalized = set(t.upper() for t in template_identifiers)
+
+    # Collect framework rules using normalized identifiers
+    # Only count rules that can be properly normalized for comparison
+    framework_normalized_ids = set()  # Normalized IDs of all framework rules
+    framework_rules = {}  # normalized_id -> (in_template, in_standard)
+    non_normalizable_count = 0  # Security Hub sources without configRuleName
+    non_normalizable_ids = set()  # Track unique non-normalizable rule IDs
+
+    for control_set in compliance_report.get("controlSets", []):
+        for control in control_set.get("controls", []):
+            for source in control.get("evidenceSources", []):
+                source_type = source.get("sourceType")
+                keyword = source.get("keywordValue", "")
+
+                if not keyword:
+                    continue
+
+                if source_type == "AWS_Config":
+                    normalized_id = keyword.upper()
+                    in_template = source.get("inConformancePack", False) if has_template else False
+                    in_standard = normalized_id in security_hub_normalized_ids
+                    framework_normalized_ids.add(normalized_id)
+                    framework_rules[normalized_id] = (in_template, in_standard)
+
+                elif source_type == "AWS_Security_Hub":
+                    # Security Hub sources need to be mapped to their normalized config rule ID
+                    config_rule = source.get("configRuleName", "")
+                    if config_rule:
+                        normalized_id = normalize_config_rule_name(config_rule).upper()
+                        in_template = False  # Security Hub sources aren't in conformance pack template
+                        in_standard = normalized_id in security_hub_normalized_ids
+                        framework_normalized_ids.add(normalized_id)
+
+                        # Only add if not already present (AWS_Config takes precedence)
+                        if normalized_id not in framework_rules:
+                            framework_rules[normalized_id] = (in_template, in_standard)
+                    else:
+                        # Security Hub sources without configRuleName can't be compared
+                        # but should still count as framework-only rules
+                        if keyword not in non_normalizable_ids:
+                            non_normalizable_ids.add(keyword)
+                            non_normalizable_count += 1
+
+    # Calculate framework segments
+    f_only = 0      # Framework only
+    f_t = 0         # Framework & Template (not Standard)
+    f_s = 0         # Framework & Standard (not Template)
+    f_t_s = 0       # All three
+
+    for normalized_id, (in_template, in_standard) in framework_rules.items():
+        if in_template and in_standard:
+            f_t_s += 1
+        elif in_template and not in_standard:
+            f_t += 1
+        elif in_standard and not in_template:
+            f_s += 1
+        else:
+            f_only += 1
+
+    # Calculate template-only and template-standard (not framework)
+    t_only = 0      # Template only
+    t_s = 0         # Template & Standard (not Framework)
+
+    for t_rule in template_normalized:
+        in_framework = t_rule in framework_normalized_ids
+        in_standard = t_rule in security_hub_normalized_ids
+
+        if not in_framework:
+            if in_standard:
+                t_s += 1
+            else:
+                t_only += 1
+
+    # Calculate standard-only (not framework, not template)
+    s_only = 0
+    for s_rule in security_hub_normalized_ids:
+        in_framework = s_rule in framework_normalized_ids
+        in_template = s_rule in template_normalized
+
+        if not in_framework and not in_template:
+            s_only += 1
+
+    # Add non-normalizable Security Hub sources to framework-only count
+    # These can't be matched against template or standard
+    f_only += non_normalizable_count
+
+    return {
+        "f_only": f_only,
+        "t_only": t_only,
+        "s_only": s_only,
+        "f_t": f_t,
+        "f_s": f_s,
+        "t_s": t_s,
+        "f_t_s": f_t_s,
+        "f_total": len(framework_rules) + non_normalizable_count,
+        "t_total": len(template_identifiers),
+        "s_total": len(security_hub_normalized_ids)
+    }
+
+
+def generate_venn_diagram_svg(venn_data: dict) -> str:
+    """
+    Generate an SVG Venn diagram with three overlapping circles.
+
+    Args:
+        venn_data: Dict with counts for each segment
+
+    Returns:
+        SVG markup string
+    """
+    f_only = venn_data.get("f_only", 0)
+    t_only = venn_data.get("t_only", 0)
+    s_only = venn_data.get("s_only", 0)
+    f_t = venn_data.get("f_t", 0)
+    f_s = venn_data.get("f_s", 0)
+    t_s = venn_data.get("t_s", 0)
+    f_t_s = venn_data.get("f_t_s", 0)
+
+    # Circle positions and radius
+    # Framework: top-left, Template: top-right, Standard: bottom-center
+    cx_f, cy_f = 150, 130  # Framework circle center
+    cx_t, cy_t = 250, 130  # Template circle center
+    cx_s, cy_s = 200, 210  # Standard circle center
+    r = 90  # Circle radius
+
+    svg = f'''
+    <svg viewBox="0 0 400 340" style="max-width: 500px; width: 100%;">
+        <defs>
+            <style>
+                .venn-circle {{ fill-opacity: 0.3; stroke-width: 2; }}
+                .venn-framework {{ fill: #4299e1; stroke: #2b6cb0; }}
+                .venn-template {{ fill: #48bb78; stroke: #276749; }}
+                .venn-standard {{ fill: #9f7aea; stroke: #6b46c1; }}
+                .venn-label {{ font-size: 12px; font-weight: bold; fill: #2d3748; }}
+                .venn-count {{ font-size: 14px; font-weight: bold; fill: #1a202c; }}
+                .venn-title {{ font-size: 11px; fill: #4a5568; }}
+            </style>
+        </defs>
+
+        <!-- Framework circle (top-left, blue) -->
+        <circle cx="{cx_f}" cy="{cy_f}" r="{r}" class="venn-circle venn-framework"/>
+
+        <!-- Template circle (top-right, green) -->
+        <circle cx="{cx_t}" cy="{cy_t}" r="{r}" class="venn-circle venn-template"/>
+
+        <!-- Standard circle (bottom, purple) -->
+        <circle cx="{cx_s}" cy="{cy_s}" r="{r}" class="venn-circle venn-standard"/>
+
+        <!-- Labels for each region -->
+        <!-- Framework only -->
+        <text x="95" y="110" class="venn-count" text-anchor="middle">{f_only}</text>
+
+        <!-- Template only -->
+        <text x="305" y="110" class="venn-count" text-anchor="middle">{t_only}</text>
+
+        <!-- Standard only -->
+        <text x="200" y="280" class="venn-count" text-anchor="middle">{s_only}</text>
+
+        <!-- Framework & Template (not Standard) -->
+        <text x="200" y="95" class="venn-count" text-anchor="middle">{f_t}</text>
+
+        <!-- Framework & Standard (not Template) -->
+        <text x="140" y="195" class="venn-count" text-anchor="middle">{f_s}</text>
+
+        <!-- Template & Standard (not Framework) -->
+        <text x="260" y="195" class="venn-count" text-anchor="middle">{t_s}</text>
+
+        <!-- All three -->
+        <text x="200" y="160" class="venn-count" text-anchor="middle">{f_t_s}</text>
+
+        <!-- Circle labels -->
+        <text x="70" y="50" class="venn-label">Framework</text>
+        <text x="70" y="65" class="venn-title">({venn_data.get("f_total", 0)} rules)</text>
+
+        <text x="280" y="50" class="venn-label">Template</text>
+        <text x="280" y="65" class="venn-title">({venn_data.get("t_total", 0)} rules)</text>
+
+        <text x="200" y="320" class="venn-label" text-anchor="middle">Standard</text>
+        <text x="200" y="335" class="venn-title" text-anchor="middle">({venn_data.get("s_total", 0)} rules)</text>
+    </svg>
+    '''
+
+    return svg
+
+
 def normalize_config_rule_name(rule_name: str) -> str:
     """
     Normalize a Config rule name for comparison between Security Hub and template formats.
@@ -1017,7 +1234,8 @@ def generate_summary_page(
     template_total_rules: int = None,
     security_hub_data: dict = None,
     template_standard_intersection: dict = None,
-    security_hub_normalized_ids: set = None
+    security_hub_normalized_ids: set = None,
+    template_identifiers: set = None
 ) -> str:
     """Generate the summary report HTML page.
 
@@ -1035,6 +1253,7 @@ def generate_summary_page(
         security_hub_data: Dict with 'total_controls', 'control_ids' from Security Hub standard
         template_standard_intersection: Dict with intersection stats between template and standard
         security_hub_normalized_ids: Set of normalized identifiers from Security Hub standard
+        template_identifiers: Set of rule identifiers from conformance pack template (for Venn diagram)
     """
 
     summary = compliance_report.get("summary", {})
@@ -1286,6 +1505,30 @@ def generate_summary_page(
             <h3>Only in Standard</h3>
             <div class="value">{tpl_std_std_only}</div>
         </div>
+    </div>
+""")
+
+    # Venn Diagram - show if we have at least template or standard data
+    has_template_data = bool(conformance_template) and not no_template_available
+    has_standard_data = bool(security_hub_normalized_ids)
+
+    if has_template_data or has_standard_data:
+        venn_data = calculate_venn_diagram_data(
+            compliance_report,
+            security_hub_normalized_ids,
+            template_identifiers,
+            has_template_data
+        )
+        venn_svg = generate_venn_diagram_svg(venn_data)
+
+        html_parts.append(f"""
+    <div class="section" style="text-align: center;">
+        <h3 style="margin-bottom: 10px;">Config Rules Coverage Venn Diagram</h3>
+        <p style="color: #718096; font-size: 13px; margin-bottom: 20px;">
+            Visualization of rule overlap between Framework, Template, and Security Standard.
+            Numbers show unique rules in each region.
+        </p>
+        {venn_svg}
     </div>
 """)
 
@@ -2115,28 +2358,36 @@ def main():
                 if security_hub_data:
                     print(f"  Security Hub standard: {security_hub_data.get('total_controls', 0)} controls")
 
-        # Calculate Template ∩ Standard intersection
+        # Calculate Template ∩ Standard intersection and extract template identifiers
         template_standard_intersection = None
-        if matching_templates and sh_file:
+        template_identifiers = None
+        template_yaml_path = None
+
+        if matching_templates:
             # Get the first template's YAML path
-            template_yaml_path = None
             for item in matching_templates:
                 if len(item) == 3:
                     _, _, rel_path = item
                     # Convert relative path back to absolute
                     template_yaml_path = os.path.join(os.path.dirname(os.path.abspath(args.report_file)), rel_path)
                     break
+
             if template_yaml_path and os.path.exists(template_yaml_path):
-                template_standard_intersection = calculate_template_standard_intersection(template_yaml_path, sh_file)
-                if template_standard_intersection:
-                    print(f"  Template ∩ Standard: {template_standard_intersection.get('intersection', 0)} rules in common")
+                # Extract template rule identifiers for Venn diagram
+                template_identifiers = extract_template_rule_identifiers(template_yaml_path)
+
+                # Calculate intersection with Security Hub standard
+                if sh_file:
+                    template_standard_intersection = calculate_template_standard_intersection(template_yaml_path, sh_file)
+                    if template_standard_intersection:
+                        print(f"  Template & Standard intersection: {template_standard_intersection.get('intersection', 0)} rules in common")
 
         # Summary page
         summary_html = generate_summary_page(
             compliance_report, evidence_sources, link_prefix, gap_report_link,
             extra_rules_report_link, matching_templates, template_mode,
             security_standard, conformance_template, template_total_rules, security_hub_data,
-            template_standard_intersection, security_hub_normalized_ids
+            template_standard_intersection, security_hub_normalized_ids, template_identifiers
         )
         summary_file = f"{output_prefix}_summary.html"
         with open(summary_file, "w", encoding="utf-8") as f:
