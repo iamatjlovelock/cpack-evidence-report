@@ -156,7 +156,9 @@ def generate_template_compliance_report(
                         all_evidence_sources.add(keyword)
 
                 elif source_type == "AWS_Security_Hub":
-                    # Direct AWS_Security_Hub source
+                    # Direct AWS_Security_Hub source - only include if mappings provided
+                    if not security_hub_mappings:
+                        continue
                     keyword = mapping_source.get("sourceKeyword", {}).get("keywordValue", "")
                     if keyword:
                         # Use composite key for Security Hub sources
@@ -203,6 +205,9 @@ def generate_template_compliance_report(
                                 all_evidence_sources.add(keyword)
 
                         elif nested_type == "AWS_Security_Hub":
+                            # Only include Security Hub sources if mappings provided
+                            if not security_hub_mappings:
+                                continue
                             keyword = nested_source.get("sourceKeyword", {}).get("keywordValue", "")
                             if keyword:
                                 sec_hub_key = f"SecurityHub:{keyword}"
