@@ -575,7 +575,10 @@ Example usage:
             "--catalog-file", cached_catalog_file,
             "--skip-fetch",
             "--link-prefix", link_prefix
-        ] + region_args
+        ]
+        if args.security_hub_file:
+            script_args.extend(["--security-hub-file", args.security_hub_file])
+        script_args.extend(region_args)
         if not run_script(
             "generate_control_catalog_report.py",
             script_args,

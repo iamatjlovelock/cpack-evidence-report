@@ -38,12 +38,79 @@ def make_anchor_id(text: str) -> str:
     return result
 
 
+def normalize_security_hub_rule(rule_name: str) -> str:
+    """
+    Normalize a Security Hub config rule name to a standard identifier.
+
+    Example: securityhub-vpc-sg-restricted-common-ports-b67e7a27 -> VPC_SG_RESTRICTED_COMMON_PORTS
+    """
+    if not rule_name:
+        return ""
+
+    name = rule_name.lower()
+
+    # Strip 'securityhub-' prefix
+    if name.startswith("securityhub-"):
+        name = name[12:]
+
+    # Strip trailing hash (8 hex characters after last hyphen)
+    if len(name) > 9 and name[-9] == '-':
+        suffix = name[-8:]
+        if all(c in '0123456789abcdef' for c in suffix):
+            name = name[:-9]
+
+    # Convert hyphens to underscores and uppercase
+    name = name.replace('-', '_').upper()
+
+    return name
+
+
+def load_security_hub_controls(security_hub_file: str) -> dict:
+    """
+    Load Security Hub control metadata and create lookup by normalized identifier.
+
+    Args:
+        security_hub_file: Path to Security Hub standard JSON file
+
+    Returns:
+        Dict mapping normalized identifier to control metadata
+    """
+    if not security_hub_file:
+        return {}
+
+    try:
+        with open(security_hub_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        controls = {}
+        for ctrl in data.get("controls", []):
+            config_rule = ctrl.get("config_rule", "")
+            if config_rule and config_rule.startswith("securityhub-"):
+                normalized_id = normalize_security_hub_rule(config_rule)
+                if normalized_id:
+                    controls[normalized_id] = {
+                        "control_id": ctrl.get("control_id", ""),
+                        "title": ctrl.get("title", ""),
+                        "description": ctrl.get("description", ""),
+                        "severity": ctrl.get("severity_rating", ""),
+                        "status": ctrl.get("control_status", ""),
+                        "remediation_url": ctrl.get("remediation_url", ""),
+                        "related_requirements": ctrl.get("related_requirements", []),
+                        "config_rule": config_rule
+                    }
+        return controls
+    except Exception as e:
+        print(f"Warning: Could not load Security Hub file: {e}")
+        return {}
+
+
 def get_all_rule_identifiers(compliance_report: dict) -> set:
     """
     Extract all unique Config rule identifiers from the compliance report.
 
     This includes:
-    - Rules referenced in the framework (keywordValue)
+    - Rules referenced in the framework (keywordValue) for AWS_Config sources
+    - Normalized identifiers derived from Security Hub config rules
     - Rules deployed in the conformance pack but not in framework
 
     Returns:
@@ -55,10 +122,20 @@ def get_all_rule_identifiers(compliance_report: dict) -> set:
     for control_set in compliance_report.get("controlSets", []):
         for control in control_set.get("controls", []):
             for source in control.get("evidenceSources", []):
-                if source.get("sourceType") == "AWS_Config":
+                source_type = source.get("sourceType")
+
+                if source_type == "AWS_Config":
                     keyword = source.get("keywordValue")
                     if keyword:
                         identifiers.add(keyword)
+
+                elif source_type == "AWS_Security_Hub":
+                    # For Security Hub sources, derive identifier from config rule name
+                    config_rule = source.get("configRuleName")
+                    if config_rule and config_rule.startswith("securityhub-"):
+                        normalized = normalize_security_hub_rule(config_rule)
+                        if normalized:
+                            identifiers.add(normalized)
 
     # Get identifiers from extra rules in conformance pack
     # These are stored as rule names, we need to extract the identifier
@@ -229,7 +306,8 @@ def generate_control_catalog_html(
     extra_rule_identifiers: dict,
     summary_link: str = None,
     link_prefix: str = None,
-    template_mode: bool = False
+    template_mode: bool = False,
+    security_hub_controls: dict = None
 ) -> str:
     """
     Generate HTML report for Control Catalog information.
@@ -241,10 +319,13 @@ def generate_control_catalog_html(
         summary_link: Link back to summary page (optional)
         link_prefix: Prefix for navigation links (optional)
         template_mode: Whether running in template mode
+        security_hub_controls: Dict mapping normalized identifier to Security Hub metadata
 
     Returns:
         HTML string
     """
+    if security_hub_controls is None:
+        security_hub_controls = {}
     framework_name = escape_html(compliance_report.get("frameworkName", "Unknown Framework"))
     conformance_pack = escape_html(compliance_report.get("conformancePackName", "Unknown"))
     generated_at = escape_html(compliance_report.get("reportGeneratedAt", ""))
@@ -261,13 +342,17 @@ def generate_control_catalog_html(
     all_identifiers = set()
     identifiers_in_framework = set()
     identifiers_in_template = set()
+    identifiers_in_standard = set(security_hub_controls.keys()) if security_hub_controls else set()
+    has_security_standard = bool(security_hub_controls)
     identifier_to_rule_names = {}  # Map identifier to set of config rule names
 
     # From framework - track both identifier and whether it's in the conformance pack
     for control_set in compliance_report.get("controlSets", []):
         for control in control_set.get("controls", []):
             for source in control.get("evidenceSources", []):
-                if source.get("sourceType") == "AWS_Config":
+                source_type = source.get("sourceType")
+
+                if source_type == "AWS_Config":
                     keyword = source.get("keywordValue")
                     config_rule_name = source.get("configRuleName")
                     if keyword:
@@ -281,6 +366,21 @@ def generate_control_catalog_html(
                         # Check if this rule is in the conformance pack/template
                         if source.get("inConformancePack", False):
                             identifiers_in_template.add(keyword)
+
+                elif source_type == "AWS_Security_Hub":
+                    # For Security Hub sources, derive identifier from config rule name
+                    config_rule_name = source.get("configRuleName")
+                    if config_rule_name and config_rule_name.startswith("securityhub-"):
+                        normalized_id = normalize_security_hub_rule(config_rule_name)
+                        if normalized_id:
+                            all_identifiers.add(normalized_id)
+                            identifiers_in_framework.add(normalized_id)
+                            # Track the Security Hub control ID as an alias
+                            keyword = source.get("keywordValue")
+                            if keyword:
+                                if normalized_id not in identifier_to_rule_names:
+                                    identifier_to_rule_names[normalized_id] = set()
+                                identifier_to_rule_names[normalized_id].add(f"Security Hub: {keyword}")
 
     # From extra rules (in template but not in framework)
     # extra_rule_identifiers maps rule name -> identifier
@@ -598,6 +698,11 @@ def generate_control_catalog_html(
             color: #276749;
             border: 1px solid #9ae6b4;
         }}
+        .badge-standard {{
+            background: #faf5ff;
+            color: #553c9a;
+            border: 1px solid #d6bcfa;
+        }}
         .badge-not-in {{
             background: #fff5f5;
             color: #c53030;
@@ -609,6 +714,54 @@ def generate_control_catalog_html(
         }}
         .not-in-catalog h3 {{
             color: #c53030;
+        }}
+        .security-hub {{
+            background: #faf5ff;
+            border-left-color: #9f7aea;
+        }}
+        .security-hub h3 {{
+            color: #553c9a;
+        }}
+        .control-meta {{
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+            align-items: center;
+        }}
+        .badge-critical {{
+            background: #fed7d7;
+            color: #c53030;
+        }}
+        .badge-high {{
+            background: #feebc8;
+            color: #c05621;
+        }}
+        .badge-medium {{
+            background: #fefcbf;
+            color: #975a16;
+        }}
+        .badge-low {{
+            background: #c6f6d5;
+            color: #276749;
+        }}
+        .badge-compliant {{
+            background: #c6f6d5;
+            color: #276749;
+        }}
+        .badge-non-compliant {{
+            background: #fed7d7;
+            color: #c53030;
+        }}
+        .control-remediation {{
+            margin-top: 15px;
+        }}
+        .control-remediation a {{
+            color: #4299e1;
+            text-decoration: none;
+        }}
+        .control-remediation a:hover {{
+            text-decoration: underline;
         }}
         .mapped-to-framework {{
             background: #f0fff4;
@@ -893,6 +1046,7 @@ def generate_control_catalog_html(
                 # Build source badges HTML
             in_framework = identifier in identifiers_in_framework
             in_template = identifier in identifiers_in_template
+            in_standard = identifier in identifiers_in_standard
             badges_html = '<div class="source-badges">'
             if in_framework:
                 badges_html += '<span class="source-badge badge-framework">In Framework</span>'
@@ -902,6 +1056,11 @@ def generate_control_catalog_html(
                 badges_html += '<span class="source-badge badge-template">In Conformance Pack Template</span>'
             else:
                 badges_html += '<span class="source-badge badge-not-in">Not in Conformance Pack Template</span>'
+            if has_security_standard:
+                if in_standard:
+                    badges_html += '<span class="source-badge badge-standard">In Security Standard</span>'
+                else:
+                    badges_html += '<span class="source-badge badge-not-in">Not in Security Standard</span>'
             badges_html += '</div>'
 
             # Build config rule names HTML if available
@@ -940,6 +1099,7 @@ def generate_control_catalog_html(
             # Build source badges HTML for not-in-catalog entries
             in_framework = identifier in identifiers_in_framework
             in_template = identifier in identifiers_in_template
+            in_standard = identifier in identifiers_in_standard
             badges_html = '<div class="source-badges">'
             if in_framework:
                 badges_html += '<span class="source-badge badge-framework">In Framework</span>'
@@ -949,6 +1109,11 @@ def generate_control_catalog_html(
                 badges_html += '<span class="source-badge badge-template">In Conformance Pack Template</span>'
             else:
                 badges_html += '<span class="source-badge badge-not-in">Not in Conformance Pack Template</span>'
+            if has_security_standard:
+                if in_standard:
+                    badges_html += '<span class="source-badge badge-standard">In Security Standard</span>'
+                else:
+                    badges_html += '<span class="source-badge badge-not-in">Not in Security Standard</span>'
             badges_html += '</div>'
 
             # Build config rule names HTML if available
@@ -958,7 +1123,49 @@ def generate_control_catalog_html(
                 rule_names_list = ", ".join(sorted(escape_html(rn) for rn in rule_names))
                 rule_names_html = f'<div class="control-rule-names"><strong>Config Rule Name(s):</strong> {rule_names_list}</div>'
 
-            html_content += f"""
+            # Check if this is a Security Hub-derived identifier with metadata
+            sh_control = security_hub_controls.get(identifier, {})
+            if sh_control:
+                # Use Security Hub metadata
+                sh_title = escape_html(sh_control.get("title", identifier))
+                sh_description = escape_html(sh_control.get("description", ""))
+                sh_severity = escape_html(sh_control.get("severity", ""))
+                sh_status = escape_html(sh_control.get("status", ""))
+                sh_control_id = escape_html(sh_control.get("control_id", ""))
+                sh_remediation = sh_control.get("remediation_url", "")
+
+                # Build severity badge
+                severity_class = sh_severity.lower() if sh_severity else ""
+                severity_badge = f'<span class="badge badge-{severity_class}">{sh_severity}</span>' if sh_severity else ""
+
+                # Build status badge
+                status_class = "compliant" if sh_status == "ENABLED" else "non-compliant"
+                status_badge = f'<span class="badge badge-{status_class}">{sh_status}</span>' if sh_status else ""
+
+                # Build remediation link
+                remediation_html = ""
+                if sh_remediation:
+                    remediation_html = f'<div class="control-remediation"><a href="{escape_html(sh_remediation)}" target="_blank">Remediation Guide</a></div>'
+
+                html_content += f"""
+        <div class="control-entry security-hub" id="{anchor}">
+            <h3>{sh_title}</h3>
+            <div class="control-identifier">{escape_html(identifier)}</div>
+            <div class="control-meta">
+                <span class="source-badge" style="background: #e9d8fd; color: #553c9a;">Security Hub: {sh_control_id}</span>
+                {severity_badge}
+                {status_badge}
+            </div>
+            {badges_html}
+            {rule_names_html}
+            <div class="control-description">
+                {sh_description}
+            </div>
+            {remediation_html}
+        </div>
+"""
+            else:
+                html_content += f"""
         <div class="control-entry not-in-catalog" id="{anchor}">
             <h3>{escape_html(identifier)}</h3>
             <div class="control-identifier">{escape_html(identifier)}</div>
@@ -1021,6 +1228,11 @@ def main():
         "--skip-fetch",
         action="store_true",
         help="Skip fetching from Control Catalog API and use existing --catalog-file"
+    )
+    parser.add_argument(
+        "--security-hub-file",
+        help="Path to Security Hub standard JSON file (for Security Hub control metadata)",
+        default=None
     )
     parser.add_argument(
         "--stdout",
@@ -1109,6 +1321,13 @@ def main():
                 json.dump(catalog_data, f, indent=2)
             print(f"Control Catalog data written to: {catalog_file}")
 
+        # Load Security Hub controls if file provided
+        security_hub_controls = {}
+        if args.security_hub_file:
+            print(f"Loading Security Hub controls: {args.security_hub_file}")
+            security_hub_controls = load_security_hub_controls(args.security_hub_file)
+            print(f"  Loaded {len(security_hub_controls)} Security Hub control mappings")
+
         # Generate HTML
         template_mode = compliance_report.get("templateMode", False)
         html_content = generate_control_catalog_html(
@@ -1117,7 +1336,8 @@ def main():
             extra_rule_identifiers,
             args.summary_link,
             args.link_prefix,
-            template_mode
+            template_mode,
+            security_hub_controls
         )
 
         if args.stdout:
