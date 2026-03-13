@@ -83,6 +83,12 @@ Example usage:
     --conformance-pack PCI-DSS-CPAC \\
     --output-prefix "PCI_DSS_v4"
 
+  # Run workflow with Security Hub standard mapping
+  python run_compliance_workflow.py \\
+    --framework-id 07938c2d-aa7a-442e-913a-4777b4efddd3 \\
+    --conformance-pack none \\
+    --security-hub-file security-standard-controls/aws-foundational-security-best-practices-v100.json
+
   # Force re-download of framework controls
   python run_compliance_workflow.py \\
     --framework-id 1f50f59a-fc3c-4b99-be05-6a79cf3f9538 \\
@@ -172,6 +178,10 @@ Example usage:
     parser.add_argument(
         "--report-file",
         help="Use existing compliance report JSON file"
+    )
+    parser.add_argument(
+        "--security-hub-file",
+        help="Security Hub standard controls JSON file for mapping AWS_Security_Hub sources (from get_standard_controls.py)"
     )
 
     args = parser.parse_args()
@@ -330,6 +340,8 @@ Example usage:
         print(f"  Resource Configs: {configs_file}")
     print(f"  Control Catalog: {cached_catalog_file}")
     print(f"  Config Rules Cache: {cached_config_rules_file}")
+    if args.security_hub_file:
+        print(f"  Security Hub File: {args.security_hub_file}")
     print(f"  HTML Summary: {html_summary}")
     print(f"  HTML Evidence: {html_evidence}")
     if not template_mode:
@@ -381,6 +393,8 @@ Example usage:
             script_args.extend(["--config-rules-file", cached_config_rules_file])
         else:
             script_args.extend(["--save-config-rules", cached_config_rules_file])
+        if args.security_hub_file:
+            script_args.extend(["--security-hub-file", args.security_hub_file])
         script_args.extend(region_args)
         if not run_script(
             "map_config_rules.py",
