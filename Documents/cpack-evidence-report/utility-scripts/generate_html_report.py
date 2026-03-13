@@ -90,6 +90,33 @@ def load_framework_template_mapping(excel_path: str) -> tuple:
     return name_mapping, id_mapping
 
 
+def lookup_security_standard(excel_path: str, framework_id: str) -> str:
+    """
+    Look up the Security Standard for a framework from Frameworks.xlsx.
+
+    Args:
+        excel_path: Path to Frameworks.xlsx
+        framework_id: The AWS Audit Manager framework ID
+
+    Returns:
+        The security standard name or None if not found
+    """
+    try:
+        import pandas as pd
+        df = pd.read_excel(excel_path)
+        match = df[df['Framework ID'] == framework_id]
+        if match.empty:
+            return None
+        security_standard = match['Security Standard'].iloc[0]
+        if pd.isna(security_standard) or not security_standard:
+            return None
+        return str(security_standard).strip()
+    except ImportError:
+        return None
+    except Exception:
+        return None
+
+
 def load_templates_to_yaml_mapping(yaml_folder: str) -> dict:
     """
     Build template-to-YAML filename mapping by scanning the YAML folder.
@@ -506,13 +533,23 @@ def generate_navigation(active_page: str, prefix: str, template_mode: bool = Fal
     """
 
 
-def generate_page_header(framework_name: str, conformance_pack: str, generated_at: str) -> str:
+def generate_page_header(framework_name: str, conformance_pack: str, generated_at: str,
+                         security_standard: str = None, conformance_template: str = None) -> str:
     """Generate the common page header."""
+    # Build optional metadata lines
+    extra_meta = ""
+    if security_standard is not None or conformance_template is not None:
+        security_display = escape_html(security_standard) if security_standard else "None"
+        template_display = escape_html(conformance_template) if conformance_template else "None"
+        extra_meta = f"""
+            <div>Security Standard: {security_display}</div>
+            <div>Conformance Template: {template_display}</div>"""
+
     return f"""
     <div class="report-header">
         <h1>{escape_html(framework_name)}</h1>
         <div class="meta">
-            <div>Conformance Pack: {escape_html(conformance_pack)}</div>
+            <div>Conformance Pack: {escape_html(conformance_pack)}</div>{extra_meta}
             <div>Generated: {escape_html(generated_at)}</div>
         </div>
     </div>
@@ -623,7 +660,9 @@ def generate_summary_page(
     gap_report_link: str = None,
     extra_rules_report_link: str = None,
     matching_templates: list = None,
-    template_mode: bool = False
+    template_mode: bool = False,
+    security_standard: str = None,
+    conformance_template: str = None
 ) -> str:
     """Generate the summary report HTML page."""
 
@@ -667,7 +706,7 @@ def generate_summary_page(
 </head>
 <body>
     {generate_navigation("summary", prefix, template_mode)}
-    {generate_page_header(framework_name, conformance_pack, generated_at)}
+    {generate_page_header(framework_name, conformance_pack, generated_at, security_standard, conformance_template)}
 """)
 
     # Check if no template was available
@@ -935,7 +974,7 @@ def generate_summary_page(
                         <td>{ctrl_name}</td>
                         <td style="color: #718096; font-style: italic;">No Config rules referenced</td>
                         <td style="text-align: center;"><span class="badge not-applicable">-</span></td>
-                        <td style="text-align: center;"><span class="badge not-applicable">N/A</span></td>
+                        <td style="text-align: center;"><span class="badge not-applicable">-</span></td>
                     </tr>
 """)
                 else:
@@ -1559,8 +1598,10 @@ def main():
         extra_rules_report_link = f"{link_prefix}_extra_rules.html"
         control_catalog_link = f"{link_prefix}_control_catalog.html"
 
-        # Look up conformance pack templates for this framework using Frameworks.xlsx
+        # Look up conformance pack templates and security standard for this framework using Frameworks.xlsx
         matching_templates = []
+        security_standard = None
+        conformance_template = None
         script_dir = os.path.dirname(os.path.abspath(__file__))
         project_dir = os.path.dirname(script_dir)
         frameworks_excel = os.path.join(project_dir, "Frameworks.xlsx")
@@ -1569,14 +1610,18 @@ def main():
         if os.path.exists(frameworks_excel):
             framework_name = compliance_report.get("frameworkName", "")
             framework_id = compliance_report.get("frameworkId", "")
+
+            # Look up security standard
+            security_standard = lookup_security_standard(frameworks_excel, framework_id)
+
             # Load framework-to-template mapping from Excel
             name_mapping, id_mapping = load_framework_template_mapping(frameworks_excel)
-            template_name = find_matching_template(framework_name, name_mapping, id_mapping, framework_id)
+            conformance_template = find_matching_template(framework_name, name_mapping, id_mapping, framework_id)
 
-            if template_name:
+            if conformance_template:
                 # Find YAML files by scanning the folder
                 templates_to_yaml = load_templates_to_yaml_mapping(yaml_folder)
-                yaml_files = find_template_yaml_files(template_name, yaml_folder, templates_to_yaml)
+                yaml_files = find_template_yaml_files(conformance_template, yaml_folder, templates_to_yaml)
                 for name, path in yaml_files:
                     rule_count = count_config_rules_in_template(path)
                     # Store relative path for the hyperlink
@@ -1585,7 +1630,7 @@ def main():
                     print(f"  Template cross-check: {name} has {rule_count} rules")
 
         # Summary page
-        summary_html = generate_summary_page(compliance_report, evidence_sources, link_prefix, gap_report_link, extra_rules_report_link, matching_templates, template_mode)
+        summary_html = generate_summary_page(compliance_report, evidence_sources, link_prefix, gap_report_link, extra_rules_report_link, matching_templates, template_mode, security_standard, conformance_template)
         summary_file = f"{output_prefix}_summary.html"
         with open(summary_file, "w", encoding="utf-8") as f:
             f.write(summary_html)

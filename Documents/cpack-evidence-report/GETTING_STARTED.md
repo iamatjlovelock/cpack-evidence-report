@@ -4,7 +4,7 @@
 
 - Python 3.8+
 - AWS credentials configured with appropriate permissions
-- Required packages: `pip install boto3 pyyaml`
+- Required packages: `pip install boto3 pyyaml pandas openpyxl`
 
 ## Step 1: Extract Security Hub Standard Controls
 

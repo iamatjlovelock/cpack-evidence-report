@@ -220,6 +220,7 @@ python utility-scripts/generate_html_report.py <compliance_report.json> <configu
 **Generates three interconnected HTML pages:**
 
 1. **Summary Page** (`*_summary.html`)
+   - Header showing framework name, Security Standard, and Conformance Template (from Frameworks.xlsx)
    - Compliance summary cards (control sets, framework controls, resources, compliance rate)
    - Config rules summary (in framework, mapped to pack, missing from pack, extra rules)
    - Conformance pack template cross-check showing matching AWS templates and rule counts
