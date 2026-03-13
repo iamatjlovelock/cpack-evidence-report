@@ -382,7 +382,7 @@ Located in `security-standard-controls/` folder. These scripts extract Security 
 List all Security Hub security standards and their enabled status.
 
 ```bash
-python utility-scripts/list_security_hub_standards.py
+python security-standard-controls/list_security_hub_standards.py
 ```
 
 **Key Features:**
@@ -392,7 +392,7 @@ python utility-scripts/list_security_hub_standards.py
 
 ### get_all_enabled_standard_controls.py
 
-Extract controls for all enabled Security Hub standards.
+Extract controls for all enabled Security Hub standards. This is the main entry point for Security Hub integration.
 
 ```bash
 # Extract controls for all enabled standards (skips existing files)
@@ -403,8 +403,9 @@ python security-standard-controls/get_all_enabled_standard_controls.py --refresh
 ```
 
 **Key Features:**
-- Reads `security_hub_standards.json` to find enabled standards
+- Automatically calls `list_security_hub_standards.py` first to refresh the standards list
 - Calls `get_standard_controls.py` for each enabled standard
+- Skips existing control files unless `--refresh` is specified
 - Creates JSON files for each standard (e.g., `aws-foundational-security-best-practices-v100.json`)
 
 ### get_standard_controls.py

@@ -2,14 +2,15 @@
 """
 Extract controls for all enabled AWS Security Hub security standards.
 
-This script reads the security_hub_standards.json file to identify which standards
-are enabled in the account, then runs get_standard_controls.py for each one to
-extract detailed control information including AWS Config rule mappings.
+This script first refreshes the list of Security Hub standards by calling
+list_security_hub_standards.py, then runs get_standard_controls.py for each
+enabled standard to extract detailed control information including AWS Config
+rule mappings.
 
 Prerequisites:
-    - Run utility-scripts/list_security_hub_standards.py first to generate
-      security-standard-controls/security_hub_standards.json
     - AWS credentials configured with permissions for:
+        - securityhub:DescribeStandards
+        - securityhub:GetEnabledStandards
         - securityhub:DescribeStandardsControls
         - securityhub:GetFindings
 
@@ -52,10 +53,19 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     standards_file = os.path.join(script_dir, 'security_hub_standards.json')
 
+    # First, refresh the list of Security Hub standards
+    print("Refreshing Security Hub standards list...")
+    list_standards_script = os.path.join(script_dir, 'list_security_hub_standards.py')
+    result = subprocess.run([sys.executable, list_standards_script], capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Error refreshing standards list: {result.stderr}")
+        sys.exit(1)
+    print(result.stdout.strip())
+    print()
+
     # Check if standards file exists
     if not os.path.exists(standards_file):
         print(f"Error: {standards_file} not found.")
-        print("Run list_security_hub_standards.py first to generate the standards list.")
         sys.exit(1)
 
     # Load standards

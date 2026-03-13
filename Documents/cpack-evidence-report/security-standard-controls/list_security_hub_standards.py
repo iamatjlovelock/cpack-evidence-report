@@ -121,12 +121,9 @@ def main():
         'standards': standards_list
     }
 
-    # Write to JSON file
+    # Write to JSON file (same folder as this script)
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_dir = os.path.dirname(script_dir)
-    output_dir = os.path.join(project_dir, 'security-standard-controls')
-    os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, 'security_hub_standards.json')
+    output_file = os.path.join(script_dir, 'security_hub_standards.json')
 
     with open(output_file, 'w') as f:
         json.dump(output, f, indent=2)
