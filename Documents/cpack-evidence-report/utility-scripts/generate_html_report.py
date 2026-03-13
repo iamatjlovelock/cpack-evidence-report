@@ -534,22 +534,44 @@ def generate_navigation(active_page: str, prefix: str, template_mode: bool = Fal
 
 
 def generate_page_header(framework_name: str, conformance_pack: str, generated_at: str,
-                         security_standard: str = None, conformance_template: str = None) -> str:
-    """Generate the common page header."""
-    # Build optional metadata lines
-    extra_meta = ""
-    if security_standard is not None or conformance_template is not None:
-        security_display = escape_html(security_standard) if security_standard else "None"
-        template_display = escape_html(conformance_template) if conformance_template else "None"
-        extra_meta = f"""
-            <div>Security Standard: {security_display}</div>
-            <div>Conformance Template: {template_display}</div>"""
+                         security_standard: str = None, conformance_template: str = None,
+                         show_mappings: bool = False) -> str:
+    """Generate the common page header.
 
-    return f"""
+    Args:
+        framework_name: Name of the framework
+        conformance_pack: Name of the deployed conformance pack (or 'none' if template mode)
+        generated_at: Report generation timestamp
+        security_standard: Mapped security standard from Frameworks.xlsx
+        conformance_template: Mapped conformance template from Frameworks.xlsx
+        show_mappings: If True, show all mapping fields (for summary page)
+    """
+    if show_mappings:
+        template_display = escape_html(conformance_template) if conformance_template else "None"
+        security_display = escape_html(security_standard) if security_standard else "None"
+        # Show 'None' if conformance pack is 'none', empty, or in template mode (starts with 'Template:' or 'No Template')
+        if not conformance_pack or conformance_pack.lower() == "none" or conformance_pack.startswith("Template:") or conformance_pack == "No Template Available":
+            pack_display = "None"
+        else:
+            pack_display = escape_html(conformance_pack)
+
+        return f"""
     <div class="report-header">
         <h1>{escape_html(framework_name)}</h1>
         <div class="meta">
-            <div>Conformance Pack: {escape_html(conformance_pack)}</div>{extra_meta}
+            <div>Conformance Pack Template: {template_display}</div>
+            <div>Security Standard: {security_display}</div>
+            <div>Deployed Conformance Pack: {pack_display}</div>
+            <div>Generated: {escape_html(generated_at)}</div>
+        </div>
+    </div>
+    """
+    else:
+        return f"""
+    <div class="report-header">
+        <h1>{escape_html(framework_name)}</h1>
+        <div class="meta">
+            <div>Conformance Pack: {escape_html(conformance_pack)}</div>
             <div>Generated: {escape_html(generated_at)}</div>
         </div>
     </div>
@@ -706,7 +728,7 @@ def generate_summary_page(
 </head>
 <body>
     {generate_navigation("summary", prefix, template_mode)}
-    {generate_page_header(framework_name, conformance_pack, generated_at, security_standard, conformance_template)}
+    {generate_page_header(framework_name, conformance_pack, generated_at, security_standard, conformance_template, show_mappings=True)}
 """)
 
     # Check if no template was available
