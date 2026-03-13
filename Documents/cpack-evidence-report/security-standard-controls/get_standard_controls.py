@@ -18,13 +18,13 @@ Prerequisites:
 
 Usage:
     # Typically called by get_all_enabled_standard_controls.py, but can be run directly:
-    python utility-scripts/get_standard_controls.py \\
+    python security-standard-controls/get_standard_controls.py \\
         --subscription-arn "arn:aws:securityhub:us-east-1:123456789012:subscription/cis-aws-foundations-benchmark/v/1.2.0" \\
         --name "CIS AWS Foundations Benchmark v1.2.0" \\
         --standards-arn "arn:aws:securityhub:::ruleset/cis-aws-foundations-benchmark/v/1.2.0"
 
     # Force refresh even if file exists
-    python utility-scripts/get_standard_controls.py ... --refresh
+    python security-standard-controls/get_standard_controls.py ... --refresh
 
 Output JSON structure:
     {

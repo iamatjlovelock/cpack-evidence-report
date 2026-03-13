@@ -15,10 +15,10 @@ Prerequisites:
 
 Usage:
     # Extract controls for all enabled standards (skips existing files)
-    python get_all_enabled_standard_controls.py
+    python security-standard-controls/get_all_enabled_standard_controls.py
 
     # Force refresh all control files
-    python get_all_enabled_standard_controls.py --refresh
+    python security-standard-controls/get_all_enabled_standard_controls.py --refresh
 
 Output:
     Creates JSON files in security-standard-controls/ for each enabled standard:
@@ -49,8 +49,8 @@ def main():
     )
     args = parser.parse_args()
 
-    project_dir = os.path.dirname(os.path.abspath(__file__))
-    standards_file = os.path.join(project_dir, 'security-standard-controls', 'security_hub_standards.json')
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    standards_file = os.path.join(script_dir, 'security_hub_standards.json')
 
     # Check if standards file exists
     if not os.path.exists(standards_file):
@@ -68,8 +68,8 @@ def main():
     print(f"Found {len(enabled_standards)} enabled standards")
     print()
 
-    # Path to the single-standard script
-    single_script = os.path.join(project_dir, 'utility-scripts', 'get_standard_controls.py')
+    # Path to the single-standard script (in same folder)
+    single_script = os.path.join(script_dir, 'get_standard_controls.py')
 
     for standard in enabled_standards:
         name = standard.get('name', '')

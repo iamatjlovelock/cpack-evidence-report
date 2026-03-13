@@ -373,6 +373,57 @@ python extract_conformance_pack_rules.py -i my-yamls -o my-rules
 - Outputs CSV files to `conformance-packs/conformance-pack-rules/` by default
 - Can process all YAMLs or a specific file
 
+## Security Hub Scripts
+
+Located in `security-standard-controls/` folder. These scripts extract Security Hub standard controls and their AWS Config rule mappings, which can be used with the `--security-hub-file` option in the workflow.
+
+### list_security_hub_standards.py
+
+List all Security Hub security standards and their enabled status.
+
+```bash
+python utility-scripts/list_security_hub_standards.py
+```
+
+**Key Features:**
+- Lists all available Security Hub standards in your account
+- Shows which standards are enabled
+- Outputs to `security-standard-controls/security_hub_standards.json`
+
+### get_all_enabled_standard_controls.py
+
+Extract controls for all enabled Security Hub standards.
+
+```bash
+# Extract controls for all enabled standards (skips existing files)
+python security-standard-controls/get_all_enabled_standard_controls.py
+
+# Force refresh all control files
+python security-standard-controls/get_all_enabled_standard_controls.py --refresh
+```
+
+**Key Features:**
+- Reads `security_hub_standards.json` to find enabled standards
+- Calls `get_standard_controls.py` for each enabled standard
+- Creates JSON files for each standard (e.g., `aws-foundational-security-best-practices-v100.json`)
+
+### get_standard_controls.py
+
+Extract controls for a single Security Hub standard with Config rule mappings.
+
+```bash
+python security-standard-controls/get_standard_controls.py \
+    --subscription-arn "arn:aws:securityhub:us-east-1:123456789012:subscription/cis-aws-foundations-benchmark/v/1.2.0" \
+    --name "CIS AWS Foundations Benchmark v1.2.0" \
+    --standards-arn "arn:aws:securityhub:::ruleset/cis-aws-foundations-benchmark/v/1.2.0"
+```
+
+**Key Features:**
+- Retrieves all controls for a Security Hub standard
+- Enriches each control with `security_control_id` and `config_rule` mappings
+- Queries Security Hub findings to discover the AWS Config rule for each control
+- Output used with `--security-hub-file` in the workflow to map AWS_Security_Hub evidence sources
+
 ## Conformance Pack Template Cross-Check
 
 The summary report includes a cross-check section that shows conformance pack templates associated with the framework. This uses:

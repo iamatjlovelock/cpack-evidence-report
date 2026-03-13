@@ -181,7 +181,7 @@ Example usage:
     )
     parser.add_argument(
         "--security-hub-file",
-        help="Security Hub standard controls JSON file for mapping AWS_Security_Hub sources (from get_standard_controls.py)"
+        help="Security Hub standard controls JSON file for mapping AWS_Security_Hub sources (from security-standard-controls/get_standard_controls.py)"
     )
 
     args = parser.parse_args()
