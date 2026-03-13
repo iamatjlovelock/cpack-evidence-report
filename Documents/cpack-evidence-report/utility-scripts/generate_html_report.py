@@ -117,6 +117,79 @@ def lookup_security_standard(excel_path: str, framework_id: str) -> str:
         return None
 
 
+def load_security_hub_standard(standard_file_path: str) -> dict:
+    """
+    Load Security Hub standard data from JSON file.
+
+    Args:
+        standard_file_path: Path to the Security Hub standard JSON file
+
+    Returns:
+        Dict with 'total_controls', 'control_ids' (set of control IDs)
+    """
+    try:
+        with open(standard_file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        control_ids = set()
+        for control in data.get("controls", []):
+            control_id = control.get("control_id") or control.get("security_control_id")
+            if control_id:
+                control_ids.add(control_id)
+        return {
+            "total_controls": data.get("total_controls", len(control_ids)),
+            "control_ids": control_ids,
+            "standard_name": data.get("standard_name", "")
+        }
+    except FileNotFoundError:
+        return None
+    except Exception:
+        return None
+
+
+def find_security_hub_standard_file(security_standard: str, project_dir: str) -> str:
+    """
+    Find the Security Hub standard JSON file based on the standard name.
+
+    Args:
+        security_standard: The security standard name from Frameworks.xlsx
+        project_dir: Path to the project directory
+
+    Returns:
+        Path to the JSON file or None if not found
+    """
+    if not security_standard:
+        return None
+
+    standard_folder = os.path.join(project_dir, "security-standard-controls")
+    if not os.path.exists(standard_folder):
+        return None
+
+    # Try direct match with .json extension
+    json_path = os.path.join(standard_folder, f"{security_standard}.json")
+    if os.path.exists(json_path):
+        return json_path
+
+    return None
+
+
+def count_security_hub_sources_in_framework(compliance_report: dict) -> set:
+    """
+    Count unique Security Hub control IDs referenced in the framework.
+
+    Returns:
+        Set of Security Hub control IDs
+    """
+    security_hub_controls = set()
+    for control_set in compliance_report.get("controlSets", []):
+        for control in control_set.get("controls", []):
+            for source in control.get("evidenceSources", []):
+                if source.get("sourceType") == "AWS_Security_Hub":
+                    control_id = source.get("securityHubControlId") or source.get("keywordValue")
+                    if control_id:
+                        security_hub_controls.add(control_id)
+    return security_hub_controls
+
+
 def load_templates_to_yaml_mapping(yaml_folder: str) -> dict:
     """
     Build template-to-YAML filename mapping by scanning the YAML folder.
@@ -684,9 +757,25 @@ def generate_summary_page(
     matching_templates: list = None,
     template_mode: bool = False,
     security_standard: str = None,
-    conformance_template: str = None
+    conformance_template: str = None,
+    template_total_rules: int = None,
+    security_hub_data: dict = None
 ) -> str:
-    """Generate the summary report HTML page."""
+    """Generate the summary report HTML page.
+
+    Args:
+        compliance_report: The compliance report data
+        evidence_sources: Dict of evidence sources
+        prefix: URL prefix for links
+        gap_report_link: Link to gap report
+        extra_rules_report_link: Link to extra rules report
+        matching_templates: List of matching template tuples
+        template_mode: Whether running in template-only mode
+        security_standard: Name of the mapped security standard
+        conformance_template: Name of the mapped conformance template
+        template_total_rules: Total rules in the conformance pack template
+        security_hub_data: Dict with 'total_controls', 'control_ids' from Security Hub standard
+    """
 
     summary = compliance_report.get("summary", {})
     framework_name = compliance_report.get("frameworkName", "Unknown Framework")
@@ -807,65 +896,85 @@ def generate_summary_page(
     </div>
 """)
 
-    # Evidence Sources Summary Card Row - different labels for template mode
-    if template_mode:
-        if no_template_available:
-            # No template - just show framework rules count
-            html_parts.append(f"""
+    # Calculate Security Hub counts
+    sh_total = "N/A"
+    sh_mapped = "N/A"
+    sh_missing = "N/A"
+    if security_hub_data and security_hub_data.get("control_ids"):
+        sh_standard_controls = security_hub_data["control_ids"]
+        sh_total = security_hub_data.get("total_controls", len(sh_standard_controls))
+        # Get Security Hub controls referenced in framework
+        framework_sh_controls = count_security_hub_sources_in_framework(compliance_report)
+        # Mapped = framework controls that are in the standard
+        sh_mapped = len(framework_sh_controls & sh_standard_controls)
+        # Missing = standard controls not referenced in framework
+        sh_missing = len(sh_standard_controls - framework_sh_controls)
+    elif not security_standard or security_standard == "None":
+        pass  # Keep N/A values
+
+    # Calculate template counts
+    tpl_total = "N/A"
+    tpl_mapped = mapped_rules_count if conformance_template else "N/A"
+    tpl_missing = extra_rules_count if conformance_template else "N/A"
+    if template_total_rules is not None:
+        tpl_total = template_total_rules
+    elif conformance_template and not no_template_available:
+        tpl_total = rules_in_pack_count  # fallback to calculated count
+
+    # Row 2: Config Rules in Framework
+    in_template_label = "In Template" if template_mode else "Mapped to Pack"
+    missing_label = "Missing from Template" if template_mode else "Missing from Pack"
+    html_parts.append(f"""
     <div class="summary-cards">
         <div class="card">
             <h3>Config Rules in Framework</h3>
             <div class="value">{total_config_rules}</div>
         </div>
-    </div>
-""")
-        else:
-            html_parts.append(f"""
-    <div class="summary-cards">
         <div class="card">
-            <h3>Config Rules in Framework</h3>
-            <div class="value">{total_config_rules}</div>
-        </div>
-        <div class="card">
-            <h3>In Template</h3>
+            <h3>{in_template_label}</h3>
             <div class="value">{mapped_rules_count}</div>
         </div>
         <div class="card">
-            <h3>Missing from Template</h3>
+            <h3>{missing_label}</h3>
             <div class="value">{"<a href='" + gap_report_link + "'>" if gap_report_link else ""}{unmapped_rules_count}{"</a>" if gap_report_link else ""}</div>
-        </div>
-        <div class="card">
-            <h3>Rules in Template</h3>
-            <div class="value">{rules_in_pack_count}</div>
-        </div>
-        <div class="card">
-            <h3>Extra Rules in Template</h3>
-            <div class="value">{"<a href='" + extra_rules_report_link + "'>" if extra_rules_report_link else ""}{extra_rules_count}{"</a>" if extra_rules_report_link else ""}</div>
         </div>
     </div>
 """)
-    else:
-        html_parts.append(f"""
+
+    # Row 3: Template Rules
+    tpl_rules_label = "Rules in Template" if template_mode else "Rules in Pack"
+    tpl_extra_label = "Extra Rules in Template" if template_mode else "Extra Rules in Pack"
+    html_parts.append(f"""
     <div class="summary-cards">
         <div class="card">
-            <h3>Config Rules in Framework</h3>
-            <div class="value">{total_config_rules}</div>
+            <h3>{tpl_rules_label}</h3>
+            <div class="value">{tpl_total}</div>
         </div>
         <div class="card">
-            <h3>Mapped to Pack</h3>
-            <div class="value">{mapped_rules_count}</div>
+            <h3>Mapped in Framework</h3>
+            <div class="value">{tpl_mapped if tpl_mapped != "N/A" else "N/A"}</div>
         </div>
         <div class="card">
-            <h3>Missing from Pack</h3>
-            <div class="value">{"<a href='" + gap_report_link + "'>" if gap_report_link else ""}{unmapped_rules_count}{"</a>" if gap_report_link else ""}</div>
+            <h3>{tpl_extra_label}</h3>
+            <div class="value">{"<a href='" + extra_rules_report_link + "'>" if extra_rules_report_link and tpl_missing != "N/A" else ""}{tpl_missing}{"</a>" if extra_rules_report_link and tpl_missing != "N/A" else ""}</div>
+        </div>
+    </div>
+""")
+
+    # Row 4: Security Standard Rules
+    html_parts.append(f"""
+    <div class="summary-cards">
+        <div class="card">
+            <h3>Rules in Security Standard</h3>
+            <div class="value">{sh_total}</div>
         </div>
         <div class="card">
-            <h3>Rules in Pack</h3>
-            <div class="value">{rules_in_pack_count}</div>
+            <h3>Mapped in Framework</h3>
+            <div class="value">{sh_mapped}</div>
         </div>
         <div class="card">
-            <h3>Extra Rules in Pack</h3>
-            <div class="value">{"<a href='" + extra_rules_report_link + "'>" if extra_rules_report_link else ""}{extra_rules_count}{"</a>" if extra_rules_report_link else ""}</div>
+            <h3>Missing from Framework</h3>
+            <div class="value">{sh_missing}</div>
         </div>
     </div>
 """)
@@ -1651,8 +1760,27 @@ def main():
                     matching_templates.append((name, rule_count, rel_path))
                     print(f"  Template cross-check: {name} has {rule_count} rules")
 
+        # Calculate template total rules from matching_templates
+        template_total_rules = None
+        if matching_templates:
+            # Use the first (primary) template's rule count
+            template_total_rules = matching_templates[0][1]
+
+        # Load Security Hub standard data
+        security_hub_data = None
+        if security_standard:
+            sh_file = find_security_hub_standard_file(security_standard, project_dir)
+            if sh_file:
+                security_hub_data = load_security_hub_standard(sh_file)
+                if security_hub_data:
+                    print(f"  Security Hub standard: {security_hub_data.get('total_controls', 0)} controls")
+
         # Summary page
-        summary_html = generate_summary_page(compliance_report, evidence_sources, link_prefix, gap_report_link, extra_rules_report_link, matching_templates, template_mode, security_standard, conformance_template)
+        summary_html = generate_summary_page(
+            compliance_report, evidence_sources, link_prefix, gap_report_link,
+            extra_rules_report_link, matching_templates, template_mode,
+            security_standard, conformance_template, template_total_rules, security_hub_data
+        )
         summary_file = f"{output_prefix}_summary.html"
         with open(summary_file, "w", encoding="utf-8") as f:
             f.write(summary_html)
