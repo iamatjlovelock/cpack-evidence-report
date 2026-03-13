@@ -66,7 +66,8 @@ def generate_template_compliance_report(
     framework_controls: dict,
     template_rules: dict,
     template_name: str,
-    no_template: bool = False
+    no_template: bool = False,
+    security_hub_mappings: dict = None
 ) -> dict:
     """
     Generate a compliance report based on template rules.
@@ -76,10 +77,14 @@ def generate_template_compliance_report(
         template_rules: Dict of rules from the YAML template
         template_name: Name of the template being used
         no_template: If True, indicates no template was found for the framework
+        security_hub_mappings: Dict mapping Security Hub control IDs to Config rule names
 
     Returns:
         Compliance report dict
     """
+    if security_hub_mappings is None:
+        security_hub_mappings = {}
+
     if no_template:
         conformance_pack_name = "No Template Available"
     else:
@@ -158,6 +163,8 @@ def generate_template_compliance_report(
                         sec_hub_key = f"SecurityHub:{keyword}"
                         framework_rule_identifiers.add(sec_hub_key)
                         in_template = sec_hub_key in template_rules or keyword in template_rules
+                        # Get Config rule name from security_hub_mappings (not keyword fallback)
+                        config_rule = security_hub_mappings.get(keyword) or template_rules.get(sec_hub_key) or template_rules.get(keyword)
 
                         source_data = {
                             "sourceName": mapping_source.get("sourceName", ""),
@@ -165,7 +172,7 @@ def generate_template_compliance_report(
                             "sourceType": "AWS_Security_Hub",
                             "keywordValue": keyword,
                             "securityHubControlId": keyword,
-                            "configRuleName": template_rules.get(sec_hub_key, template_rules.get(keyword, keyword)),
+                            "configRuleName": config_rule,
                             "inConformancePack": in_template,
                             "evaluationResults": []
                         }
@@ -201,6 +208,8 @@ def generate_template_compliance_report(
                                 sec_hub_key = f"SecurityHub:{keyword}"
                                 framework_rule_identifiers.add(sec_hub_key)
                                 in_template = sec_hub_key in template_rules or keyword in template_rules
+                                # Get Config rule name from security_hub_mappings (not keyword fallback)
+                                config_rule = security_hub_mappings.get(keyword) or template_rules.get(sec_hub_key) or template_rules.get(keyword)
 
                                 source_data = {
                                     "sourceName": nested_source.get("sourceName", ""),
@@ -208,7 +217,7 @@ def generate_template_compliance_report(
                                     "sourceType": "AWS_Security_Hub",
                                     "keywordValue": keyword,
                                     "securityHubControlId": keyword,
-                                    "configRuleName": template_rules.get(sec_hub_key, template_rules.get(keyword, keyword)),
+                                    "configRuleName": config_rule,
                                     "inConformancePack": in_template,
                                     "evaluationResults": []
                                 }
@@ -384,6 +393,11 @@ def main():
         help="Path to Conformance pack templates.csv",
         default=None
     )
+    parser.add_argument(
+        "--mapping-file",
+        help="Path to Config mapping JSON file (from map_config_rules.py) for Security Hub rule names",
+        default=None
+    )
 
     args = parser.parse_args()
 
@@ -430,6 +444,23 @@ def main():
             template_rules = extract_rules_from_yaml(template_path)
             print(f"  Found {len(template_rules)} Config rules in template")
 
+        # Load Security Hub mappings from mapping file if provided
+        security_hub_mappings = {}
+        if args.mapping_file:
+            try:
+                print(f"Loading Config rule mappings from: {args.mapping_file}")
+                with open(args.mapping_file, "r", encoding="utf-8") as f:
+                    mapping_data = json.load(f)
+                for mapping in mapping_data.get("mappings", []):
+                    if mapping.get("sourceType") == "AWS_Security_Hub":
+                        control_id = mapping.get("identifier", "")
+                        config_rules = mapping.get("configRulesInAccount", [])
+                        if control_id and config_rules:
+                            security_hub_mappings[control_id] = config_rules[0].get("ConfigRuleName", "")
+                print(f"  Loaded {len(security_hub_mappings)} Security Hub -> Config rule mappings")
+            except Exception as e:
+                print(f"  Warning: Could not load mapping file: {e}")
+
         # Generate report
         if no_template:
             print("Generating framework-only report (no template available)...")
@@ -439,7 +470,8 @@ def main():
             framework_controls,
             template_rules,
             template_name,
-            no_template
+            no_template,
+            security_hub_mappings
         )
 
         # Count mapped/unmapped

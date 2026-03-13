@@ -416,6 +416,9 @@ Example usage:
             script_args = [framework_file, "-o", report_file]
             if args.template:
                 script_args.extend(["--template", args.template])
+            # Pass mapping file if it exists (for Security Hub rule name resolution)
+            if os.path.exists(mapping_file):
+                script_args.extend(["--mapping-file", mapping_file])
             if not run_script(
                 "generate_template_compliance_report.py",
                 script_args,
