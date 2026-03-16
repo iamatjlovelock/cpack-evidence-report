@@ -107,7 +107,7 @@ def lookup_security_standard(excel_path: str, framework_id: str) -> str:
         match = df[df['Framework ID'] == framework_id]
         if match.empty:
             return None
-        security_standard = match['Security Standard'].iloc[0]
+        security_standard = match['Security Standard File'].iloc[0]
         if pd.isna(security_standard) or not security_standard:
             return None
         return str(security_standard).strip()
