@@ -172,6 +172,34 @@ def find_security_hub_standard_file(security_standard: str, project_dir: str) ->
     return None
 
 
+def load_control_catalog_identifiers(project_dir: str) -> set:
+    """
+    Load control identifiers from the detective-controls.json file.
+
+    Args:
+        project_dir: Path to the project directory
+
+    Returns:
+        Set of control identifiers (uppercase) from the AWS Control Catalog
+    """
+    catalog_file = os.path.join(project_dir, "control-catalog", "detective-controls.json")
+    identifiers = set()
+
+    try:
+        with open(catalog_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        controls = data.get("controls", {})
+        # Keys are the identifiers
+        for identifier in controls.keys():
+            identifiers.add(identifier.upper())
+    except FileNotFoundError:
+        pass
+    except Exception:
+        pass
+
+    return identifiers
+
+
 def count_security_hub_sources_in_framework(compliance_report: dict) -> set:
     """
     Count unique Security Hub control IDs referenced in the framework.
@@ -1235,7 +1263,8 @@ def generate_summary_page(
     security_hub_data: dict = None,
     template_standard_intersection: dict = None,
     security_hub_normalized_ids: set = None,
-    template_identifiers: set = None
+    template_identifiers: set = None,
+    control_catalog_ids: set = None
 ) -> str:
     """Generate the summary report HTML page.
 
@@ -1254,6 +1283,7 @@ def generate_summary_page(
         template_standard_intersection: Dict with intersection stats between template and standard
         security_hub_normalized_ids: Set of normalized identifiers from Security Hub standard
         template_identifiers: Set of rule identifiers from conformance pack template (for Venn diagram)
+        control_catalog_ids: Set of control identifiers from AWS Control Catalog
     """
 
     summary = compliance_report.get("summary", {})
@@ -1614,10 +1644,11 @@ def generate_summary_page(
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 35%">Framework Control</th>
-                        <th style="width: 40%">Evidence Source (Config Rule)</th>
+                        <th style="width: 30%">Framework Control</th>
+                        <th style="width: 34%">Evidence Source (Config Rule)</th>
                         <th style="width: 12%; text-align: center;">In Standard</th>
-                        <th style="width: 13%; text-align: center;">In Template</th>
+                        <th style="width: 12%; text-align: center;">In Template</th>
+                        <th style="width: 12%; text-align: center;">In Catalog</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1636,11 +1667,12 @@ def generate_summary_page(
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 30%">Framework Control</th>
-                        <th style="width: 30%">Evidence Source (Config Rule)</th>
+                        <th style="width: 25%">Framework Control</th>
+                        <th style="width: 27%">Evidence Source (Config Rule)</th>
                         <th style="width: 10%; text-align: center;">In Standard</th>
-                        <th style="width: 10%; text-align: center;">Compliant</th>
-                        <th style="width: 10%; text-align: center;">Non-Compliant</th>
+                        <th style="width: 10%; text-align: center;">In Catalog</th>
+                        <th style="width: 9%; text-align: center;">Compliant</th>
+                        <th style="width: 9%; text-align: center;">Non-Compliant</th>
                         <th style="width: 10%; text-align: center;">Status</th>
                     </tr>
                 </thead>
@@ -1708,6 +1740,9 @@ def generate_summary_page(
                 in_standard_badge = '<span class="badge compliant">Yes</span>' if is_in_standard else '<span class="badge not-applicable">No</span>'
                 # In Template badge - only Yes if actually in conformance pack (not for Security Hub sources)
                 in_template_badge = '<span class="badge compliant">Yes</span>' if source.get("inConformancePack") else '<span class="badge not-applicable">No</span>'
+                # In Catalog badge - check if rule identifier is in AWS Control Catalog
+                is_in_catalog = control_catalog_ids and keyword_value.upper() in control_catalog_ids
+                in_catalog_badge = '<span class="badge compliant">Yes</span>' if is_in_catalog else '<span class="badge not-applicable">No</span>'
 
                 if template_mode:
                     html_parts.append(f"""
@@ -1716,6 +1751,7 @@ def generate_summary_page(
                         <td><a href="{prefix}_evidence.html#{rule_anchor}">{source_name}</a></td>
                         <td style="text-align: center;">{in_standard_badge}</td>
                         <td style="text-align: center;">{in_template_badge}</td>
+                        <td style="text-align: center;">{in_catalog_badge}</td>
                     </tr>
 """)
                 else:
@@ -1736,6 +1772,7 @@ def generate_summary_page(
                         <td>{ctrl_cell}</td>
                         <td><a href="{prefix}_evidence.html#{rule_anchor}">{source_name}</a></td>
                         <td style="text-align: center;">{in_standard_badge}</td>
+                        <td style="text-align: center;">{in_catalog_badge}</td>
                         <td style="text-align: center;" class="count-compliant">{compliant_count}</td>
                         <td style="text-align: center;" class="count-non-compliant">{non_compliant_count}</td>
                         <td style="text-align: center;">{status_badge}</td>
@@ -1757,6 +1794,9 @@ def generate_summary_page(
                 is_security_hub = source.get("sourceType") == "AWS_Security_Hub"
                 is_in_standard = is_security_hub or (security_hub_normalized_ids and keyword.upper() in security_hub_normalized_ids)
                 in_standard_badge = '<span class="badge compliant">Yes</span>' if is_in_standard else '<span class="badge not-applicable">No</span>'
+                # In Catalog badge
+                is_in_catalog = control_catalog_ids and keyword.upper() in control_catalog_ids
+                in_catalog_badge = '<span class="badge compliant">Yes</span>' if is_in_catalog else '<span class="badge not-applicable">No</span>'
 
                 # Link to gap report if available, or to control catalog if no template available
                 if gap_report_link and not no_template_available:
@@ -1778,6 +1818,7 @@ def generate_summary_page(
                         <td>{source_display}</td>
                         <td style="text-align: center;">{in_standard_badge}</td>
                         <td style="text-align: center;">{status_badge}</td>
+                        <td style="text-align: center;">{in_catalog_badge}</td>
                     </tr>
 """)
                 else:
@@ -1786,6 +1827,7 @@ def generate_summary_page(
                         <td>{ctrl_cell}</td>
                         <td>{source_display}</td>
                         <td style="text-align: center;">{in_standard_badge}</td>
+                        <td style="text-align: center;">{in_catalog_badge}</td>
                         <td style="text-align: center;">-</td>
                         <td style="text-align: center;">-</td>
                         <td style="text-align: center;">{status_badge}</td>
@@ -2366,6 +2408,11 @@ def main():
                 if security_hub_data:
                     print(f"  Security Hub standard: {security_hub_data.get('total_controls', 0)} controls")
 
+        # Load Control Catalog identifiers
+        control_catalog_ids = load_control_catalog_identifiers(project_dir)
+        if control_catalog_ids:
+            print(f"  Control Catalog: {len(control_catalog_ids)} detective controls")
+
         # Calculate Template ∩ Standard intersection and extract template identifiers
         template_standard_intersection = None
         template_identifiers = None
@@ -2395,7 +2442,8 @@ def main():
             compliance_report, evidence_sources, link_prefix, gap_report_link,
             extra_rules_report_link, matching_templates, template_mode,
             security_standard, conformance_template, template_total_rules, security_hub_data,
-            template_standard_intersection, security_hub_normalized_ids, template_identifiers
+            template_standard_intersection, security_hub_normalized_ids, template_identifiers,
+            control_catalog_ids
         )
         summary_file = f"{output_prefix}_summary.html"
         with open(summary_file, "w", encoding="utf-8") as f:
