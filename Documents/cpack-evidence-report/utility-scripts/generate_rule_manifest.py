@@ -907,9 +907,11 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
                 // URL parameter filters (OR logic - show if in ANY of the specified sources)
                 if (urlFramework || urlStandard || urlTemplate) {{
                     let matchesUrl = false;
+                    // Normalize template name: convert spaces to dashes, lowercase
+                    const normalizedTemplate = urlTemplate ? urlTemplate.toLowerCase().replace(/\\s+/g, '-') : '';
                     if (urlFramework && frameworks.includes(urlFramework.toLowerCase())) matchesUrl = true;
                     if (urlStandard && standards.includes(urlStandard.toLowerCase())) matchesUrl = true;
-                    if (urlTemplate && templates.includes(urlTemplate.toLowerCase())) matchesUrl = true;
+                    if (normalizedTemplate && templates.includes(normalizedTemplate)) matchesUrl = true;
                     if (!matchesUrl) show = false;
                 }}
 
