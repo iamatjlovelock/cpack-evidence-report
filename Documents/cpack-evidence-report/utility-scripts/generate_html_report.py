@@ -24,6 +24,7 @@ import re
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
+from urllib.parse import quote
 
 
 def load_json_file(file_path: str) -> dict:
@@ -1563,6 +1564,33 @@ def generate_summary_page(
             Numbers show unique rules in each region.
         </p>
         {venn_svg}
+    </div>
+""")
+
+    # Rules Manifest Link
+    # Build URL parameters for filtering the manifest
+    manifest_params = []
+    if framework_name:
+        manifest_params.append(f"framework={quote(framework_name, safe='')}")
+    if security_standard:
+        manifest_params.append(f"standard={quote(security_standard, safe='')}")
+    if conformance_template and not no_template_available:
+        manifest_params.append(f"template={quote(conformance_template, safe='')}")
+
+    manifest_url = "../../rule_manifest.html"
+    if manifest_params:
+        manifest_url += "?" + "&".join(manifest_params)
+
+    html_parts.append(f"""
+    <div class="section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px;">
+        <h3 style="margin: 0 0 10px 0; color: white;">Rules Manifest</h3>
+        <p style="margin: 0 0 15px 0; opacity: 0.9; font-size: 14px;">
+            View the complete inventory of all Config rules, filtered to show rules referenced by this framework,
+            its associated security standard, or conformance pack template.
+        </p>
+        <a href="{manifest_url}" style="display: inline-block; background: white; color: #667eea; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">
+            Open Rules Manifest
+        </a>
     </div>
 """)
 

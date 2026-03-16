@@ -640,6 +640,18 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
             font-size: 12px;
             margin-top: 30px;
         }}
+        .url-filter-banner {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }}
+        .url-filter-banner a {{
+            color: white;
+            text-decoration: underline;
+        }}
     </style>
 </head>
 <body>
@@ -669,6 +681,11 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
             <div class="value">{in_templates_count}</div>
             <div class="label">In Templates</div>
         </div>
+    </div>
+
+    <div id="urlFilterBanner" class="url-filter-banner" style="display: none;">
+        <span id="urlFilterText"></span>
+        <a href="?" style="margin-left: 15px; color: white;">Clear filters</a>
     </div>
 
     <div class="filters">
@@ -786,8 +803,13 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
         source = best_meta.get("source", "")
         source_html = f'<div class="metadata-source">Source: {escape_html(source)}</div>' if source else ""
 
+        # Create lists of names for data attributes
+        framework_names = "|".join(fw["name"] for fw in rule["frameworks"]).lower()
+        standard_names = "|".join(std["name"] for std in rule["standards"]).lower()
+        template_names = "|".join(tpl["name"] for tpl in rule["templates"]).lower()
+
         html_content += f"""
-            <tr data-catalog="{str(in_catalog).lower()}" data-framework="{str(in_f).lower()}" data-standard="{str(in_s).lower()}" data-template="{str(in_t).lower()}" data-venn="{venn_segment}" data-search="{escape_html(rule_id.lower())} {escape_html(description.lower())}">
+            <tr data-catalog="{str(in_catalog).lower()}" data-framework="{str(in_f).lower()}" data-standard="{str(in_s).lower()}" data-template="{str(in_t).lower()}" data-venn="{venn_segment}" data-search="{escape_html(rule_id.lower())} {escape_html(description.lower())}" data-frameworks="{escape_html(framework_names)}" data-standards="{escape_html(standard_names)}" data-templates="{escape_html(template_names)}">
                 <td><span class="rule-id">{escape_html(rule_id)}</span></td>
                 <td style="text-align: center;">{catalog_badge}</td>
                 <td>
@@ -811,6 +833,20 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
     </div>
 
     <script>
+        // URL parameter filters (set on page load)
+        let urlFramework = '';
+        let urlStandard = '';
+        let urlTemplate = '';
+
+        function getUrlParams() {{
+            const params = new URLSearchParams(window.location.search);
+            return {{
+                framework: params.get('framework') || '',
+                standard: params.get('standard') || '',
+                template: params.get('template') || ''
+            }};
+        }}
+
         function filterRules() {{
             const searchText = document.getElementById('searchBox').value.toLowerCase();
             const filterCatalog = document.getElementById('filterCatalog').checked;
@@ -838,6 +874,9 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
                 const inStandard = row.dataset.standard === 'true';
                 const inTemplate = row.dataset.template === 'true';
                 const venn = row.dataset.venn || '';
+                const frameworks = row.dataset.frameworks || '';
+                const standards = row.dataset.standards || '';
+                const templates = row.dataset.templates || '';
 
                 let show = true;
 
@@ -865,6 +904,15 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
                     if (!matchesVenn) show = false;
                 }}
 
+                // URL parameter filters (OR logic - show if in ANY of the specified sources)
+                if (urlFramework || urlStandard || urlTemplate) {{
+                    let matchesUrl = false;
+                    if (urlFramework && frameworks.includes(urlFramework.toLowerCase())) matchesUrl = true;
+                    if (urlStandard && standards.includes(urlStandard.toLowerCase())) matchesUrl = true;
+                    if (urlTemplate && templates.includes(urlTemplate.toLowerCase())) matchesUrl = true;
+                    if (!matchesUrl) show = false;
+                }}
+
                 if (show) {{
                     row.classList.remove('hidden');
                     visibleCount++;
@@ -875,6 +923,29 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
 
             document.getElementById('ruleCount').textContent = `Showing ${{visibleCount}} of {total_rules} rules`;
         }}
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {{
+            const params = getUrlParams();
+            urlFramework = params.framework;
+            urlStandard = params.standard;
+            urlTemplate = params.template;
+
+            // Show filter banner if URL parameters are set
+            if (urlFramework || urlStandard || urlTemplate) {{
+                const banner = document.getElementById('urlFilterBanner');
+                const text = document.getElementById('urlFilterText');
+                let filterParts = [];
+                if (urlFramework) filterParts.push('Framework: ' + urlFramework);
+                if (urlStandard) filterParts.push('Standard: ' + urlStandard);
+                if (urlTemplate) filterParts.push('Template: ' + urlTemplate);
+                text.textContent = 'Filtered by: ' + filterParts.join(' | ');
+                banner.style.display = 'block';
+            }}
+
+            // Apply filters
+            filterRules();
+        }});
     </script>
 </body>
 </html>
