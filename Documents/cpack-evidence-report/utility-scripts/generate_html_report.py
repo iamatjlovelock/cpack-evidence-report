@@ -1700,6 +1700,7 @@ def generate_summary_page(
                         <td style="color: #718096; font-style: italic;">No Config rules referenced</td>
                         <td style="text-align: center;"><span class="badge not-applicable">-</span></td>
                         <td style="text-align: center;"><span class="badge not-applicable">-</span></td>
+                        <td style="text-align: center;"><span class="badge not-applicable">-</span></td>
                     </tr>
 """)
                 else:
@@ -1707,6 +1708,7 @@ def generate_summary_page(
                     <tr>
                         <td>{ctrl_name}</td>
                         <td style="color: #718096; font-style: italic;">No Config rules referenced</td>
+                        <td style="text-align: center;">-</td>
                         <td style="text-align: center;">-</td>
                         <td style="text-align: center;">-</td>
                         <td style="text-align: center;">-</td>
