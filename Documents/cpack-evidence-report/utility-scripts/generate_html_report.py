@@ -1586,9 +1586,9 @@ def generate_summary_page(
         <div style="margin-top: 15px; padding: 12px; background: #f7fafc; border-radius: 6px; border-left: 3px solid #4299e1;">
             <p style="color: #4a5568; font-size: 13px; margin: 0 0 8px 0;"><strong>Understanding the "In Template" column:</strong></p>
             <ul style="color: #4a5568; font-size: 13px; margin: 0; padding-left: 20px;">
-                <li><span class="badge compliant" style="font-size: 11px;">Yes</span> — Rule is deployed via conformance pack and being evaluated</li>
-                <li><span class="badge not-applicable" style="font-size: 11px;">No</span> — Rule is evaluated via Security Hub (not conformance pack), still being monitored</li>
-                <li><span class="badge missing" style="font-size: 11px;">Missing</span> — Rule is NOT deployed; this is a gap that needs to be addressed</li>
+                <li><span class="badge compliant" style="font-size: 11px;">Yes</span> — Rule is in the conformance pack template</li>
+                <li><span class="badge not-applicable" style="font-size: 11px;">No</span> — Rule is not in the conformance pack template (check Gap Report for details)</li>
+                <li><span class="badge not-applicable" style="font-size: 11px;">-</span> — No Config rule referenced for this control</li>
             </ul>
         </div>
     </div>
@@ -1796,6 +1796,8 @@ def generate_summary_page(
                 is_security_hub = source.get("sourceType") == "AWS_Security_Hub"
                 is_in_standard = is_security_hub or (security_hub_normalized_ids and keyword.upper() in security_hub_normalized_ids)
                 in_standard_badge = '<span class="badge compliant">Yes</span>' if is_in_standard else '<span class="badge not-applicable">No</span>'
+                # In Template badge - missing sources are by definition not in template
+                in_template_badge = '<span class="badge not-applicable">No</span>'
                 # In Catalog badge
                 is_in_catalog = control_catalog_ids and keyword.upper() in control_catalog_ids
                 in_catalog_badge = '<span class="badge compliant">Yes</span>' if is_in_catalog else '<span class="badge not-applicable">No</span>'
@@ -1803,7 +1805,7 @@ def generate_summary_page(
                 # Link to gap report if available, or to control catalog if no template available
                 if gap_report_link and not no_template_available:
                     source_display = f'<a href="{gap_report_link}#{keyword_anchor}">{source_name}</a>'
-                    status_badge = f'<a href="{gap_report_link}#{keyword_anchor}"><span class="badge missing">Missing</span></a>'
+                    status_badge = f'<a href="{gap_report_link}#{keyword_anchor}"><span class="badge missing">Gap</span></a>'
                 elif no_template_available:
                     # Link to Control Catalog when no template available
                     control_catalog_link = f"{prefix}_control_catalog.html"
@@ -1811,7 +1813,7 @@ def generate_summary_page(
                     status_badge = '<span class="badge not-applicable">N/A</span>'
                 else:
                     source_display = source_name
-                    status_badge = '<span class="badge missing">Missing</span>'
+                    status_badge = '<span class="badge missing">Gap</span>'
 
                 if template_mode:
                     html_parts.append(f"""
@@ -1819,7 +1821,7 @@ def generate_summary_page(
                         <td>{ctrl_cell}</td>
                         <td>{source_display}</td>
                         <td style="text-align: center;">{in_standard_badge}</td>
-                        <td style="text-align: center;">{status_badge}</td>
+                        <td style="text-align: center;">{in_template_badge}</td>
                         <td style="text-align: center;">{in_catalog_badge}</td>
                     </tr>
 """)
