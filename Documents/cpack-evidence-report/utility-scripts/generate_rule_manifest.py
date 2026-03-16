@@ -660,32 +660,32 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
         <p>Comprehensive inventory of all AWS Config rules across frameworks, security standards, and conformance pack templates</p>
     </div>
 
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="value">{total_rules}</div>
-            <div class="label">Total Rules</div>
-        </div>
-        <div class="stat-card">
-            <div class="value">{in_catalog_count}</div>
-            <div class="label">In Control Catalog</div>
-        </div>
-        <div class="stat-card">
-            <div class="value">{in_frameworks_count}</div>
-            <div class="label">In Frameworks</div>
-        </div>
-        <div class="stat-card">
-            <div class="value">{in_standards_count}</div>
-            <div class="label">In Security Standards</div>
-        </div>
-        <div class="stat-card">
-            <div class="value">{in_templates_count}</div>
-            <div class="label">In Templates</div>
-        </div>
-    </div>
-
     <div id="urlFilterBanner" class="url-filter-banner" style="display: none;">
         <span id="urlFilterText"></span>
         <a href="?" style="margin-left: 15px; color: white;">Clear filters</a>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="value" id="statTotal">{total_rules}</div>
+            <div class="label">Total Rules</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="statCatalog">{in_catalog_count}</div>
+            <div class="label">In Control Catalog</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="statFrameworks">{in_frameworks_count}</div>
+            <div class="label" id="labelFrameworks">In Frameworks</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="statStandards">{in_standards_count}</div>
+            <div class="label" id="labelStandards">In Security Standards</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="statTemplates">{in_templates_count}</div>
+            <div class="label" id="labelTemplates">In Templates</div>
+        </div>
     </div>
 
     <div class="filters">
@@ -866,6 +866,10 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
 
             const rows = document.querySelectorAll('#rulesTable tr');
             let visibleCount = 0;
+            let filteredCatalog = 0;
+            let filteredFrameworks = 0;
+            let filteredStandards = 0;
+            let filteredTemplates = 0;
 
             rows.forEach(row => {{
                 const searchData = row.dataset.search || '';
@@ -905,23 +909,55 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
                 }}
 
                 // URL parameter filters (OR logic - show if in ANY of the specified sources)
+                let matchesUrlFramework = false;
+                let matchesUrlStandard = false;
+                let matchesUrlTemplate = false;
+                const normalizedTemplate = urlTemplate ? urlTemplate.toLowerCase().replace(/\\s+/g, '-') : '';
+
+                if (urlFramework && frameworks.includes(urlFramework.toLowerCase())) matchesUrlFramework = true;
+                if (urlStandard && standards.includes(urlStandard.toLowerCase())) matchesUrlStandard = true;
+                if (normalizedTemplate && templates.includes(normalizedTemplate)) matchesUrlTemplate = true;
+
                 if (urlFramework || urlStandard || urlTemplate) {{
-                    let matchesUrl = false;
-                    // Normalize template name: convert spaces to dashes, lowercase
-                    const normalizedTemplate = urlTemplate ? urlTemplate.toLowerCase().replace(/\\s+/g, '-') : '';
-                    if (urlFramework && frameworks.includes(urlFramework.toLowerCase())) matchesUrl = true;
-                    if (urlStandard && standards.includes(urlStandard.toLowerCase())) matchesUrl = true;
-                    if (normalizedTemplate && templates.includes(normalizedTemplate)) matchesUrl = true;
-                    if (!matchesUrl) show = false;
+                    if (!matchesUrlFramework && !matchesUrlStandard && !matchesUrlTemplate) show = false;
                 }}
 
                 if (show) {{
                     row.classList.remove('hidden');
                     visibleCount++;
+                    if (inCatalog) filteredCatalog++;
+                    // When URL filters active, count matches to specific sources; otherwise count any
+                    if (urlFramework) {{
+                        if (matchesUrlFramework) filteredFrameworks++;
+                    }} else if (inFramework) {{
+                        filteredFrameworks++;
+                    }}
+                    if (urlStandard) {{
+                        if (matchesUrlStandard) filteredStandards++;
+                    }} else if (inStandard) {{
+                        filteredStandards++;
+                    }}
+                    if (urlTemplate) {{
+                        if (matchesUrlTemplate) filteredTemplates++;
+                    }} else if (inTemplate) {{
+                        filteredTemplates++;
+                    }}
                 }} else {{
                     row.classList.add('hidden');
                 }}
             }});
+
+            // Update stats cards with filtered counts
+            document.getElementById('statTotal').textContent = visibleCount;
+            document.getElementById('statCatalog').textContent = filteredCatalog;
+            document.getElementById('statFrameworks').textContent = filteredFrameworks;
+            document.getElementById('statStandards').textContent = filteredStandards;
+            document.getElementById('statTemplates').textContent = filteredTemplates;
+
+            // Update labels to singular when URL filter is active
+            document.getElementById('labelFrameworks').textContent = urlFramework ? 'In Framework' : 'In Frameworks';
+            document.getElementById('labelStandards').textContent = urlStandard ? 'In Security Standard' : 'In Security Standards';
+            document.getElementById('labelTemplates').textContent = urlTemplate ? 'In Template' : 'In Templates';
 
             document.getElementById('ruleCount').textContent = `Showing ${{visibleCount}} of {total_rules} rules`;
         }}
