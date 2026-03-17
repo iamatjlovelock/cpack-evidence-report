@@ -442,12 +442,13 @@ def calculate_venn_diagram_data(
     }
 
 
-def generate_venn_diagram_svg(venn_data: dict) -> str:
+def generate_venn_diagram_svg(venn_data: dict, manifest_base_url: str = "") -> str:
     """
     Generate an SVG Venn diagram with three overlapping circles.
 
     Args:
         venn_data: Dict with counts for each segment
+        manifest_base_url: Base URL to the rule manifest (with framework/standard/template params)
 
     Returns:
         SVG markup string
@@ -467,6 +468,27 @@ def generate_venn_diagram_svg(venn_data: dict) -> str:
     cx_s, cy_s = 200, 210  # Standard circle center
     r = 90  # Circle radius
 
+    # Build URLs for each venn segment
+    def make_venn_url(segment: str) -> str:
+        if not manifest_base_url:
+            return ""
+        separator = "&" if "?" in manifest_base_url else "?"
+        return f"{manifest_base_url}{separator}venn={segment}"
+
+    url_f = make_venn_url("f")
+    url_t = make_venn_url("t")
+    url_s = make_venn_url("s")
+    url_ft = make_venn_url("ft")
+    url_fs = make_venn_url("fs")
+    url_ts = make_venn_url("ts")
+    url_fts = make_venn_url("fts")
+
+    # Helper to wrap count in link if URL available
+    def linked_count(count: int, url: str, x: int, y: int) -> str:
+        if url and count > 0:
+            return f'<a href="{url}" style="text-decoration: none;"><text x="{x}" y="{y}" class="venn-count venn-link" text-anchor="middle">{count}</text></a>'
+        return f'<text x="{x}" y="{y}" class="venn-count" text-anchor="middle">{count}</text>'
+
     svg = f'''
     <svg viewBox="0 0 400 340" style="max-width: 500px; width: 100%;">
         <defs>
@@ -477,6 +499,8 @@ def generate_venn_diagram_svg(venn_data: dict) -> str:
                 .venn-standard {{ fill: #9f7aea; stroke: #6b46c1; }}
                 .venn-label {{ font-size: 12px; font-weight: bold; fill: #2d3748; }}
                 .venn-count {{ font-size: 14px; font-weight: bold; fill: #1a202c; }}
+                .venn-link {{ cursor: pointer; }}
+                .venn-link:hover {{ fill: #4c51bf; text-decoration: underline; }}
                 .venn-title {{ font-size: 11px; fill: #4a5568; }}
             </style>
         </defs>
@@ -492,25 +516,25 @@ def generate_venn_diagram_svg(venn_data: dict) -> str:
 
         <!-- Labels for each region -->
         <!-- Framework only -->
-        <text x="95" y="110" class="venn-count" text-anchor="middle">{f_only}</text>
+        {linked_count(f_only, url_f, 95, 110)}
 
         <!-- Template only -->
-        <text x="305" y="110" class="venn-count" text-anchor="middle">{t_only}</text>
+        {linked_count(t_only, url_t, 305, 110)}
 
         <!-- Standard only -->
-        <text x="200" y="280" class="venn-count" text-anchor="middle">{s_only}</text>
+        {linked_count(s_only, url_s, 200, 280)}
 
         <!-- Framework & Template (not Standard) -->
-        <text x="200" y="95" class="venn-count" text-anchor="middle">{f_t}</text>
+        {linked_count(f_t, url_ft, 200, 95)}
 
         <!-- Framework & Standard (not Template) -->
-        <text x="140" y="195" class="venn-count" text-anchor="middle">{f_s}</text>
+        {linked_count(f_s, url_fs, 140, 195)}
 
         <!-- Template & Standard (not Framework) -->
-        <text x="260" y="195" class="venn-count" text-anchor="middle">{t_s}</text>
+        {linked_count(t_s, url_ts, 260, 195)}
 
         <!-- All three -->
-        <text x="200" y="160" class="venn-count" text-anchor="middle">{f_t_s}</text>
+        {linked_count(f_t_s, url_fts, 200, 160)}
 
         <!-- Circle labels -->
         <text x="70" y="50" class="venn-label">Framework</text>
@@ -1543,6 +1567,19 @@ def generate_summary_page(
     </div>
 """)
 
+    # Build manifest URL parameters (used by both Venn diagram and Rules Manifest link)
+    manifest_params = []
+    if framework_name:
+        manifest_params.append(f"framework={quote(framework_name, safe='')}")
+    if security_standard:
+        manifest_params.append(f"standard={quote(security_standard, safe='')}")
+    if conformance_template and not no_template_available:
+        manifest_params.append(f"template={quote(conformance_template, safe='')}")
+
+    manifest_base_url = "../../rule-manifest/rule_manifest.html"
+    if manifest_params:
+        manifest_base_url += "?" + "&".join(manifest_params)
+
     # Venn Diagram - show if we have at least template or standard data
     has_template_data = bool(conformance_template) and not no_template_available
     has_standard_data = bool(security_hub_normalized_ids)
@@ -1554,29 +1591,20 @@ def generate_summary_page(
             template_identifiers,
             has_template_data
         )
-        venn_svg = generate_venn_diagram_svg(venn_data)
+        venn_svg = generate_venn_diagram_svg(venn_data, manifest_base_url)
 
         html_parts.append(f"""
     <div class="section" style="text-align: center;">
         <h3 style="margin-bottom: 10px;">Config Rules Coverage Venn Diagram</h3>
         <p style="color: #718096; font-size: 13px; margin-bottom: 20px;">
             Visualization of rule overlap between Framework, Template, and Security Standard.
-            Numbers show unique rules in each region.
+            Numbers show unique rules in each region. Click a number to view those rules in the manifest.
         </p>
         {venn_svg}
     </div>
 """)
 
     # Rules Manifest Link
-    # Build URL parameters for filtering the manifest
-    manifest_params = []
-    if framework_name:
-        manifest_params.append(f"framework={quote(framework_name, safe='')}")
-    if security_standard:
-        manifest_params.append(f"standard={quote(security_standard, safe='')}")
-    if conformance_template and not no_template_available:
-        manifest_params.append(f"template={quote(conformance_template, safe='')}")
-
     manifest_url = "../../rule-manifest/rule_manifest.html"
     if manifest_params:
         manifest_url += "?" + "&".join(manifest_params)

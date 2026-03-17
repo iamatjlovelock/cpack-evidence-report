@@ -845,7 +845,8 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
             return {{
                 framework: params.get('framework') || '',
                 standard: params.get('standard') || '',
-                template: params.get('template') || ''
+                template: params.get('template') || '',
+                venn: params.get('venn') || ''
             }};
         }}
 
@@ -928,15 +929,31 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
                 }}
 
                 // Venn segment filters (OR logic)
+                // When URL filters are active, compute segment based on URL-filtered sources
                 if (anyVennFilter) {{
+                    // Determine effective membership based on URL filters
+                    const effectiveF = urlFramework ? matchesUrlFramework : inFramework;
+                    const effectiveT = urlTemplate ? matchesUrlTemplate : inTemplate;
+                    const effectiveS = urlStandard ? matchesUrlStandard : inStandard;
+
+                    // Compute the effective venn segment
+                    let effectiveVenn = '';
+                    if (effectiveF && effectiveT && effectiveS) effectiveVenn = 'fts';
+                    else if (effectiveF && effectiveT) effectiveVenn = 'ft';
+                    else if (effectiveF && effectiveS) effectiveVenn = 'fs';
+                    else if (effectiveT && effectiveS) effectiveVenn = 'ts';
+                    else if (effectiveF) effectiveVenn = 'f';
+                    else if (effectiveT) effectiveVenn = 't';
+                    else if (effectiveS) effectiveVenn = 's';
+
                     let matchesVenn = false;
-                    if (filterFOnly && venn === 'f') matchesVenn = true;
-                    if (filterTOnly && venn === 't') matchesVenn = true;
-                    if (filterSOnly && venn === 's') matchesVenn = true;
-                    if (filterFT && venn === 'ft') matchesVenn = true;
-                    if (filterFS && venn === 'fs') matchesVenn = true;
-                    if (filterTS && venn === 'ts') matchesVenn = true;
-                    if (filterFTS && venn === 'fts') matchesVenn = true;
+                    if (filterFOnly && effectiveVenn === 'f') matchesVenn = true;
+                    if (filterTOnly && effectiveVenn === 't') matchesVenn = true;
+                    if (filterSOnly && effectiveVenn === 's') matchesVenn = true;
+                    if (filterFT && effectiveVenn === 'ft') matchesVenn = true;
+                    if (filterFS && effectiveVenn === 'fs') matchesVenn = true;
+                    if (filterTS && effectiveVenn === 'ts') matchesVenn = true;
+                    if (filterFTS && effectiveVenn === 'fts') matchesVenn = true;
                     if (!matchesVenn) show = false;
                 }}
 
@@ -986,15 +1003,42 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
             urlFramework = params.framework;
             urlStandard = params.standard;
             urlTemplate = params.template;
+            const urlVenn = params.venn;
+
+            // Pre-check venn segment checkbox if specified in URL
+            const vennCheckboxMap = {{
+                'f': 'filterFOnly',
+                't': 'filterTOnly',
+                's': 'filterSOnly',
+                'ft': 'filterFT',
+                'fs': 'filterFS',
+                'ts': 'filterTS',
+                'fts': 'filterFTS'
+            }};
+            if (urlVenn && vennCheckboxMap[urlVenn]) {{
+                document.getElementById(vennCheckboxMap[urlVenn]).checked = true;
+            }}
 
             // Show filter banner if URL parameters are set
-            if (urlFramework || urlStandard || urlTemplate) {{
+            if (urlFramework || urlStandard || urlTemplate || urlVenn) {{
                 const banner = document.getElementById('urlFilterBanner');
                 const text = document.getElementById('urlFilterText');
                 let filterParts = [];
                 if (urlFramework) filterParts.push('Framework: ' + urlFramework);
                 if (urlStandard) filterParts.push('Standard: ' + urlStandard);
                 if (urlTemplate) filterParts.push('Template: ' + urlTemplate);
+                if (urlVenn) {{
+                    const vennLabels = {{
+                        'f': 'Framework Only',
+                        't': 'Template Only',
+                        's': 'Standard Only',
+                        'ft': 'Framework & Template',
+                        'fs': 'Framework & Standard',
+                        'ts': 'Template & Standard',
+                        'fts': 'All Three'
+                    }};
+                    filterParts.push('Segment: ' + (vennLabels[urlVenn] || urlVenn));
+                }}
                 text.textContent = 'Filtered by: ' + filterParts.join(' | ');
                 banner.style.display = 'block';
             }}
