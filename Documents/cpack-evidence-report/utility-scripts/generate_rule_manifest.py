@@ -646,7 +646,12 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
             font-family: 'Monaco', 'Menlo', monospace;
             font-size: 12px;
             font-weight: 600;
-            color: #2d3748;
+            color: #2b6cb0;
+            text-decoration: none;
+        }}
+        .rule-id:hover {{
+            color: #1a365d;
+            text-decoration: underline;
         }}
         .description {{
             color: #4a5568;
@@ -868,9 +873,13 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
         standard_names = "|".join(std["name"] for std in rule["standards"]).lower()
         template_names = "|".join(tpl["name"] for tpl in rule["templates"]).lower()
 
+        # Generate documentation URL (rule identifier to kebab-case)
+        doc_url_name = rule_id.lower().replace('_', '-')
+        doc_url = f"https://docs.aws.amazon.com/config/latest/developerguide/{doc_url_name}.html"
+
         html_content += f"""
             <tr data-catalog="{str(in_catalog).lower()}" data-framework="{str(in_f).lower()}" data-standard="{str(in_s).lower()}" data-template="{str(in_t).lower()}" data-venn="{venn_segment}" data-search="{escape_html(rule_id.lower())} {escape_html(description.lower())}" data-frameworks="{escape_html(framework_names)}" data-standards="{escape_html(standard_names)}" data-templates="{escape_html(template_names)}">
-                <td><span class="rule-id">{escape_html(rule_id)}</span></td>
+                <td><a href="{doc_url}" target="_blank" class="rule-id">{escape_html(rule_id)}</a></td>
                 <td style="text-align: center;">{catalog_badge}</td>
                 <td>
                     <div class="description">{description_html}</div>
@@ -908,33 +917,18 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
             }};
         }}
 
-        // Normalize template name for matching: aggressive normalization
+        // Normalize template name for matching
         function normalizeTemplateName(name) {{
             return name.toLowerCase()
-                .replace(/[()\\s.-]+/g, '')     // Remove parens, spaces, dots, hyphens
-                .replace(/v(\\d)/g, '$1');       // Remove 'v' before version numbers (v4.0 -> 4.0)
+                .replace(/[()\\s.-]+/g, '');    // Remove parens, spaces, dots, hyphens
         }}
 
-        // Check if two template names match (handles variations)
+        // Check if two template names match (exact match after normalization)
         function templatesMatch(stored, urlParam) {{
             if (!stored || !urlParam) return false;
             const s = normalizeTemplateName(stored);
             const u = normalizeTemplateName(urlParam);
-            // Exact match after normalization
-            if (s === u) return true;
-            // Check if one contains the other (handles extra suffixes)
-            if (s.length > 10 && u.length > 10) {{
-                // Extract core name - remove common prefix and check overlap
-                const sCore = s.replace('operationalbestpracticesfor', '');
-                const uCore = u.replace('operationalbestpracticesfor', '');
-                if (sCore && uCore) {{
-                    // Check if cores start with the same framework identifier
-                    // e.g., "pcidss40includingglobalresourcetypes" should match "pcidss40..."
-                    const minLen = Math.min(sCore.length, uCore.length, 15);
-                    return sCore.substring(0, minLen) === uCore.substring(0, minLen);
-                }}
-            }}
-            return false;
+            return s === u;
         }}
 
         function filterRules() {{
