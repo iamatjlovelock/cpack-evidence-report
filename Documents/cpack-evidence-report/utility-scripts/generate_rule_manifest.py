@@ -91,6 +91,38 @@ def load_control_catalog(project_dir: str) -> dict:
     return catalog
 
 
+def load_managed_rules(project_dir: str) -> dict:
+    """Load all managed rules from documentation scrape or API export."""
+    # Prefer the docs scrape (more complete) over the API export
+    docs_file = os.path.join(project_dir, "control-catalog", "managed-rules-docs.json")
+    api_file = os.path.join(project_dir, "control-catalog", "managed-rules.json")
+    managed_rules = {}
+
+    # Try docs file first
+    managed_file = docs_file if os.path.exists(docs_file) else api_file
+
+    try:
+        with open(managed_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for identifier, info in data.get("rules", {}).items():
+            managed_rules[identifier.upper()] = {
+                "identifier": identifier.upper(),
+                "name": info.get("name", ""),
+                "description": info.get("description", ""),
+                "resource_types": info.get("resource_types", []),
+                "trigger_type": info.get("trigger_type", ""),
+                "aws_region": info.get("aws_region", ""),
+                "parameters": info.get("parameters", []),
+                "source": "AWS Documentation"
+            }
+    except FileNotFoundError:
+        print("Note: No managed rules file found. Run scrape_managed_rules_docs.py to generate it.")
+    except Exception as e:
+        print(f"Warning: Could not load managed rules: {e}")
+
+    return managed_rules
+
+
 def load_security_standards(project_dir: str) -> dict:
     """Load all security standard files and extract rule mappings."""
     standards_dir = os.path.join(project_dir, "security-standard-controls")
@@ -268,9 +300,10 @@ def load_framework_reports(project_dir: str) -> dict:
     return frameworks
 
 
-def build_rule_manifest(control_catalog: dict, standards: dict, templates: dict, frameworks: dict) -> dict:
+def build_rule_manifest(control_catalog: dict, standards: dict, templates: dict, frameworks: dict, managed_rules: dict = None) -> dict:
     """Build a unified manifest of all rules."""
     manifest = {}
+    managed_rules = managed_rules or {}
 
     # Add rules from Control Catalog
     for rule_id, info in control_catalog.items():
@@ -358,6 +391,31 @@ def build_rule_manifest(control_catalog: dict, standards: dict, templates: dict,
                 "controls": rule_info.get("controls", []),
                 "source_type": rule_info.get("source_type", ""),
                 "in_conformance_pack": rule_info.get("in_conformance_pack", False)
+            })
+
+    # Add managed rules not already in manifest (available but not in compliance sources)
+    for rule_id, info in managed_rules.items():
+        if rule_id not in manifest:
+            manifest[rule_id] = {
+                "identifier": rule_id,
+                "in_catalog": rule_id in control_catalog,
+                "catalog_metadata": control_catalog.get(rule_id),
+                "frameworks": [],
+                "standards": [],
+                "templates": [],
+                "metadata_sources": [],
+                "managed_only": True  # Flag to indicate not in any compliance source
+            }
+        # Add metadata from documentation for all rules (even existing ones)
+        if info.get("description") or info.get("resource_types"):
+            manifest[rule_id]["metadata_sources"].append({
+                "source": "AWS Documentation",
+                "name": info.get("name", ""),
+                "description": info.get("description", ""),
+                "resource_types": info.get("resource_types", []),
+                "trigger_type": info.get("trigger_type", ""),
+                "aws_region": info.get("aws_region", ""),
+                "parameters": info.get("parameters", [])
             })
 
     return manifest
@@ -1098,8 +1156,12 @@ def main():
     total_framework_rules = sum(len(f["rules"]) for f in frameworks.values())
     print(f"    Found {len(frameworks)} frameworks with {total_framework_rules} rule references")
 
+    print("  Loading Managed Rules...")
+    managed_rules = load_managed_rules(project_dir)
+    print(f"    Found {len(managed_rules)} managed rule identifiers")
+
     print("\nBuilding rule manifest...")
-    manifest = build_rule_manifest(control_catalog, standards, templates, frameworks)
+    manifest = build_rule_manifest(control_catalog, standards, templates, frameworks, managed_rules)
     print(f"  Total unique rules: {len(manifest)}")
 
     print("\nGenerating HTML report...")
