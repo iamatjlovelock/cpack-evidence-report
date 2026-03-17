@@ -1504,13 +1504,16 @@ def generate_summary_page(
 
 
     # Build manifest URL parameters (used by both Venn diagram and Rules Manifest link)
+    # Use the actual YAML filename for template (not the Excel display name) to ensure matching
     manifest_params = []
     if framework_name:
         manifest_params.append(f"framework={quote(framework_name, safe='')}")
     if security_standard:
         manifest_params.append(f"standard={quote(security_standard, safe='')}")
-    if conformance_template and not no_template_available:
-        manifest_params.append(f"template={quote(conformance_template, safe='')}")
+    # Use actual YAML template name from matching_templates for URL matching
+    actual_template_name = matching_templates[0][0] if matching_templates else None
+    if actual_template_name and not no_template_available:
+        manifest_params.append(f"template={quote(actual_template_name, safe='')}")
 
     manifest_base_url = "../../rule-manifest/rule_manifest.html"
     if manifest_params:

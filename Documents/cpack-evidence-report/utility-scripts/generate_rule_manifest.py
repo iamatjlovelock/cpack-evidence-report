@@ -908,6 +908,35 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
             }};
         }}
 
+        // Normalize template name for matching: aggressive normalization
+        function normalizeTemplateName(name) {{
+            return name.toLowerCase()
+                .replace(/[()\\s.-]+/g, '')     // Remove parens, spaces, dots, hyphens
+                .replace(/v(\\d)/g, '$1');       // Remove 'v' before version numbers (v4.0 -> 4.0)
+        }}
+
+        // Check if two template names match (handles variations)
+        function templatesMatch(stored, urlParam) {{
+            if (!stored || !urlParam) return false;
+            const s = normalizeTemplateName(stored);
+            const u = normalizeTemplateName(urlParam);
+            // Exact match after normalization
+            if (s === u) return true;
+            // Check if one contains the other (handles extra suffixes)
+            if (s.length > 10 && u.length > 10) {{
+                // Extract core name - remove common prefix and check overlap
+                const sCore = s.replace('operationalbestpracticesfor', '');
+                const uCore = u.replace('operationalbestpracticesfor', '');
+                if (sCore && uCore) {{
+                    // Check if cores start with the same framework identifier
+                    // e.g., "pcidss40includingglobalresourcetypes" should match "pcidss40..."
+                    const minLen = Math.min(sCore.length, uCore.length, 15);
+                    return sCore.substring(0, minLen) === uCore.substring(0, minLen);
+                }}
+            }}
+            return false;
+        }}
+
         function filterRules() {{
             const searchText = document.getElementById('searchBox').value.toLowerCase();
             const filterCatalog = document.getElementById('filterCatalog').checked;
@@ -951,10 +980,17 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
                 }}
 
                 // URL parameter matching (compute first, needed for membership filters)
-                const normalizedTemplate = urlTemplate ? urlTemplate.toLowerCase().replace(/\\s+/g, '-') : '';
-                const matchesUrlFramework = urlFramework && frameworks.includes(urlFramework.toLowerCase());
-                const matchesUrlStandard = urlStandard && standards.includes(urlStandard.toLowerCase());
-                const matchesUrlTemplate = normalizedTemplate && templates.includes(normalizedTemplate);
+                // Use exact matching against pipe-delimited values
+                const frameworkList = frameworks ? frameworks.split('|') : [];
+                const standardList = standards ? standards.split('|') : [];
+                const templateList = templates ? templates.split('|') : [];
+
+                const normalizedUrlFramework = urlFramework ? urlFramework.toLowerCase() : '';
+                const normalizedUrlStandard = urlStandard ? urlStandard.toLowerCase() : '';
+
+                const matchesUrlFramework = normalizedUrlFramework && frameworkList.some(f => f === normalizedUrlFramework);
+                const matchesUrlStandard = normalizedUrlStandard && standardList.some(s => s === normalizedUrlStandard);
+                const matchesUrlTemplate = urlTemplate && templateList.some(t => templatesMatch(t, urlTemplate));
 
                 // URL parameter filters (OR logic - show if in ANY of the specified sources)
                 if (urlFramework || urlStandard || urlTemplate) {{
