@@ -1465,10 +1465,8 @@ def generate_summary_page(
         <p style="color: #4a5568; font-size: 14px; margin: 0; line-height: 1.6;">
             <strong>Config Rules Coverage:</strong> The cards below show the overlap between Config rules in the
             Audit Manager framework, the Conformance Pack template, and the Security Hub standard.
-            "Intersection" shows rules that appear in both sources. "Not Covered" shows framework rules
-            that do not appear in either the template or standard. "Missing from Framework" shows rules
-            in the template or standard that are not referenced by the framework.
-            The final row shows the direct comparison between Template and Standard rules (normalized for comparison).
+            "Intersection" shows framework rules that appear in the template or standard.
+            "Not Covered" shows framework rules that do not appear in either the template or standard.
         </p>
     </div>
 """)
@@ -1504,68 +1502,6 @@ def generate_summary_page(
     </div>
 """)
 
-    # Row 2: Template Rules
-    html_parts.append(f"""
-    <div class="summary-cards">
-        <div class="card">
-            <h3>Config Rules in Template</h3>
-            <div class="value">{tpl_total}</div>
-        </div>
-        <div class="card">
-            <h3>Intersection with Framework</h3>
-            <div class="value">{tpl_mapped}</div>
-        </div>
-        <div class="card">
-            <h3>Missing from Framework</h3>
-            <div class="value">{"<a href='" + extra_rules_report_link + "'>" if extra_rules_report_link and tpl_missing != "N/A" else ""}{tpl_missing}{"</a>" if extra_rules_report_link and tpl_missing != "N/A" else ""}</div>
-        </div>
-    </div>
-""")
-
-    # Row 3: Security Standard Rules
-    html_parts.append(f"""
-    <div class="summary-cards">
-        <div class="card">
-            <h3>Config Rules in Standard</h3>
-            <div class="value">{sh_total}</div>
-        </div>
-        <div class="card">
-            <h3>Intersection with Framework</h3>
-            <div class="value">{sh_mapped}</div>
-        </div>
-        <div class="card">
-            <h3>Missing from Framework</h3>
-            <div class="value">{sh_missing}</div>
-        </div>
-    </div>
-""")
-
-    # Row 4: Template ∩ Standard (cross-check between template and security standard)
-    if template_standard_intersection:
-        tpl_std_intersection = template_standard_intersection.get("intersection", 0)
-        tpl_std_tpl_only = template_standard_intersection.get("template_only", 0)
-        tpl_std_std_only = template_standard_intersection.get("standard_only", 0)
-    else:
-        tpl_std_intersection = "N/A"
-        tpl_std_tpl_only = "N/A"
-        tpl_std_std_only = "N/A"
-
-    html_parts.append(f"""
-    <div class="summary-cards">
-        <div class="card">
-            <h3>Template ∩ Standard</h3>
-            <div class="value">{tpl_std_intersection}</div>
-        </div>
-        <div class="card">
-            <h3>Only in Template</h3>
-            <div class="value">{tpl_std_tpl_only}</div>
-        </div>
-        <div class="card">
-            <h3>Only in Standard</h3>
-            <div class="value">{tpl_std_std_only}</div>
-        </div>
-    </div>
-""")
 
     # Build manifest URL parameters (used by both Venn diagram and Rules Manifest link)
     manifest_params = []
@@ -1579,6 +1515,20 @@ def generate_summary_page(
     manifest_base_url = "../../rule-manifest/rule_manifest.html"
     if manifest_params:
         manifest_base_url += "?" + "&".join(manifest_params)
+
+    # Rules Manifest Link
+    html_parts.append(f"""
+    <div class="section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px;">
+        <h3 style="margin: 0 0 10px 0; color: white;">Rules Manifest</h3>
+        <p style="margin: 0 0 15px 0; opacity: 0.9; font-size: 14px;">
+            View the complete inventory of all Config rules, filtered to show rules referenced by this framework,
+            its associated security standard, or conformance pack template.
+        </p>
+        <a href="{manifest_base_url}" style="display: inline-block; background: white; color: #667eea; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">
+            Open Rules Manifest
+        </a>
+    </div>
+""")
 
     # Venn Diagram - show if we have at least template or standard data
     has_template_data = bool(conformance_template) and not no_template_available
@@ -1601,24 +1551,6 @@ def generate_summary_page(
             Numbers show unique rules in each region. Click a number to view those rules in the manifest.
         </p>
         {venn_svg}
-    </div>
-""")
-
-    # Rules Manifest Link
-    manifest_url = "../../rule-manifest/rule_manifest.html"
-    if manifest_params:
-        manifest_url += "?" + "&".join(manifest_params)
-
-    html_parts.append(f"""
-    <div class="section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px;">
-        <h3 style="margin: 0 0 10px 0; color: white;">Rules Manifest</h3>
-        <p style="margin: 0 0 15px 0; opacity: 0.9; font-size: 14px;">
-            View the complete inventory of all Config rules, filtered to show rules referenced by this framework,
-            its associated security standard, or conformance pack template.
-        </p>
-        <a href="{manifest_url}" style="display: inline-block; background: white; color: #667eea; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">
-            Open Rules Manifest
-        </a>
     </div>
 """)
 
@@ -1665,30 +1597,16 @@ def generate_summary_page(
         cs_summary = control_set.get("summary", {})
         num_controls = cs_summary.get("totalControls", 0)
 
-        # Count unique config rules with non-compliant resources
-        rules_with_issues = set()
+        # Count unique config rules in this control set
+        all_config_rules = set()
         for control in control_set.get("controls", []):
             for source in control.get("evidenceSources", []):
-                if source.get("sourceType") in ["AWS_Config", "AWS_Security_Hub"] and source.get("inConformancePack"):
-                    if source.get("complianceSummary", {}).get("nonCompliant", 0) > 0:
-                        rule_name = source.get("configRuleName")
-                        if rule_name:
-                            rules_with_issues.add(rule_name)
-
-        num_rules_with_issues = len(rules_with_issues)
-        issues_class = "count-non-compliant" if num_rules_with_issues > 0 else "count-compliant"
-
-        # Count unique missing rules (Config rules not in conformance pack)
-        missing_rules = set()
-        for control in control_set.get("controls", []):
-            for source in control.get("evidenceSources", []):
-                if source.get("sourceType") in ["AWS_Config", "AWS_Security_Hub"] and not source.get("inConformancePack"):
+                if source.get("sourceType") in ["AWS_Config", "AWS_Security_Hub"]:
                     keyword = source.get("keywordValue") or source.get("configRuleName")
                     if keyword:
-                        missing_rules.add(keyword)
+                        all_config_rules.add(keyword)
 
-        num_missing_rules = len(missing_rules)
-        missing_class = "count-non-compliant" if num_missing_rules > 0 else "count-compliant"
+        num_config_rules = len(all_config_rules)
 
         # Different table layout for template mode vs normal mode
         if template_mode:
@@ -1697,8 +1615,7 @@ def generate_summary_page(
             <div class="control-set-header">
                 <h3>{cs_name}</h3>
                 <div class="stats">
-                    {num_controls} controls |
-                    <span class="{missing_class}">{num_missing_rules} missing from template</span>
+                    {num_controls} Framework Controls mapped to {num_config_rules} Config Rules
                 </div>
             </div>
             <table>
@@ -1719,9 +1636,7 @@ def generate_summary_page(
             <div class="control-set-header">
                 <h3>{cs_name}</h3>
                 <div class="stats">
-                    {num_controls} controls |
-                    <span class="{issues_class}">{num_rules_with_issues} config rules with non-compliant resources</span> |
-                    <span class="{missing_class}">{num_missing_rules} missing from pack</span>
+                    {num_controls} Framework Controls mapped to {num_config_rules} Config Rules
                 </div>
             </div>
             <table>
