@@ -1577,7 +1577,7 @@ def generate_summary_page(
     if conformance_template and not no_template_available:
         manifest_params.append(f"template={quote(conformance_template, safe='')}")
 
-    manifest_url = "../../rule_manifest.html"
+    manifest_url = "../../rule-manifest/rule_manifest.html"
     if manifest_params:
         manifest_url += "?" + "&".join(manifest_params)
 

@@ -641,12 +641,14 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
             margin-top: 30px;
         }}
         .url-filter-banner {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #f5a623 0%, #e67e22 100%);
             color: white;
             padding: 12px 20px;
             border-radius: 8px;
             margin-bottom: 20px;
             font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(245, 166, 35, 0.4);
         }}
         .url-filter-banner a {{
             color: white;
@@ -676,15 +678,15 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
         </div>
         <div class="stat-card">
             <div class="value" id="statFrameworks">{in_frameworks_count}</div>
-            <div class="label" id="labelFrameworks">In Frameworks</div>
+            <div class="label" id="labelFrameworks">In Audit Manager Frameworks</div>
         </div>
         <div class="stat-card">
             <div class="value" id="statStandards">{in_standards_count}</div>
-            <div class="label" id="labelStandards">In Security Standards</div>
+            <div class="label" id="labelStandards">In Security Hub Standards</div>
         </div>
         <div class="stat-card">
             <div class="value" id="statTemplates">{in_templates_count}</div>
-            <div class="label" id="labelTemplates">In Templates</div>
+            <div class="label" id="labelTemplates">In Config Conformance Pack Templates</div>
         </div>
     </div>
 
@@ -889,11 +891,41 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
                     show = false;
                 }}
 
+                // URL parameter matching (compute first, needed for membership filters)
+                const normalizedTemplate = urlTemplate ? urlTemplate.toLowerCase().replace(/\\s+/g, '-') : '';
+                const matchesUrlFramework = urlFramework && frameworks.includes(urlFramework.toLowerCase());
+                const matchesUrlStandard = urlStandard && standards.includes(urlStandard.toLowerCase());
+                const matchesUrlTemplate = normalizedTemplate && templates.includes(normalizedTemplate);
+
+                // URL parameter filters (OR logic - show if in ANY of the specified sources)
+                if (urlFramework || urlStandard || urlTemplate) {{
+                    if (!matchesUrlFramework && !matchesUrlStandard && !matchesUrlTemplate) show = false;
+                }}
+
                 // Membership filters (AND logic)
+                // When URL filter is active, check against the specific URL-filtered source
                 if (filterCatalog && !inCatalog) show = false;
-                if (filterFramework && !inFramework) show = false;
-                if (filterStandard && !inStandard) show = false;
-                if (filterTemplate && !inTemplate) show = false;
+                if (filterFramework) {{
+                    if (urlFramework) {{
+                        if (!matchesUrlFramework) show = false;
+                    }} else {{
+                        if (!inFramework) show = false;
+                    }}
+                }}
+                if (filterStandard) {{
+                    if (urlStandard) {{
+                        if (!matchesUrlStandard) show = false;
+                    }} else {{
+                        if (!inStandard) show = false;
+                    }}
+                }}
+                if (filterTemplate) {{
+                    if (urlTemplate) {{
+                        if (!matchesUrlTemplate) show = false;
+                    }} else {{
+                        if (!inTemplate) show = false;
+                    }}
+                }}
 
                 // Venn segment filters (OR logic)
                 if (anyVennFilter) {{
@@ -906,20 +938,6 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
                     if (filterTS && venn === 'ts') matchesVenn = true;
                     if (filterFTS && venn === 'fts') matchesVenn = true;
                     if (!matchesVenn) show = false;
-                }}
-
-                // URL parameter filters (OR logic - show if in ANY of the specified sources)
-                let matchesUrlFramework = false;
-                let matchesUrlStandard = false;
-                let matchesUrlTemplate = false;
-                const normalizedTemplate = urlTemplate ? urlTemplate.toLowerCase().replace(/\\s+/g, '-') : '';
-
-                if (urlFramework && frameworks.includes(urlFramework.toLowerCase())) matchesUrlFramework = true;
-                if (urlStandard && standards.includes(urlStandard.toLowerCase())) matchesUrlStandard = true;
-                if (normalizedTemplate && templates.includes(normalizedTemplate)) matchesUrlTemplate = true;
-
-                if (urlFramework || urlStandard || urlTemplate) {{
-                    if (!matchesUrlFramework && !matchesUrlStandard && !matchesUrlTemplate) show = false;
                 }}
 
                 if (show) {{
@@ -955,9 +973,9 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
             document.getElementById('statTemplates').textContent = filteredTemplates;
 
             // Update labels to singular when URL filter is active
-            document.getElementById('labelFrameworks').textContent = urlFramework ? 'In Framework' : 'In Frameworks';
-            document.getElementById('labelStandards').textContent = urlStandard ? 'In Security Standard' : 'In Security Standards';
-            document.getElementById('labelTemplates').textContent = urlTemplate ? 'In Template' : 'In Templates';
+            document.getElementById('labelFrameworks').textContent = urlFramework ? 'In Audit Manager Framework' : 'In Audit Manager Frameworks';
+            document.getElementById('labelStandards').textContent = urlStandard ? 'In Security Hub Standard' : 'In Security Hub Standards';
+            document.getElementById('labelTemplates').textContent = urlTemplate ? 'In Config Conformance Pack Template' : 'In Config Conformance Pack Templates';
 
             document.getElementById('ruleCount').textContent = `Showing ${{visibleCount}} of {total_rules} rules`;
         }}
@@ -1001,8 +1019,8 @@ def main():
     )
     parser.add_argument(
         "-o", "--output",
-        default="rule_manifest.html",
-        help="Output HTML file path (default: rule_manifest.html)"
+        default="rule-manifest/rule_manifest.html",
+        help="Output HTML file path (default: rule-manifest/rule_manifest.html)"
     )
     parser.add_argument(
         "--project-dir",
