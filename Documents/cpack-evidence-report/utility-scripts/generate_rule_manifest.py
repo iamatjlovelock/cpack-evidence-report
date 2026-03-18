@@ -735,6 +735,12 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
             background: #e2e8f0;
             color: #4a5568;
         }}
+        .badge.hidden {{
+            display: none;
+        }}
+        .no-badge {{
+            color: #a0aec0;
+        }}
         .rule-id {{
             font-family: 'Monaco', 'Menlo', monospace;
             font-size: 12px;
@@ -921,35 +927,32 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
         severity_class = f"severity-{severity.lower()}" if severity else ""
         severity_badge = f'<span class="badge {severity_class}">{severity}</span>' if severity else '-'
 
-        # Framework badges
+        # Framework badges - include data-name for filtering
         framework_badges = ""
-        for fw in rule["frameworks"][:3]:
-            fw_name = fw["name"][:20] + "..." if len(fw["name"]) > 20 else fw["name"]
-            framework_badges += f'<span class="badge framework" title="{escape_html(fw["name"])}">{escape_html(fw_name)}</span> '
-        if len(rule["frameworks"]) > 3:
-            framework_badges += f'<span class="badge framework">+{len(rule["frameworks"]) - 3} more</span>'
+        for fw in rule["frameworks"]:
+            fw_name_display = fw["name"][:20] + "..." if len(fw["name"]) > 20 else fw["name"]
+            fw_name_normalized = fw["name"].lower()
+            framework_badges += f'<span class="badge framework" data-name="{escape_html(fw_name_normalized)}" title="{escape_html(fw["name"])}">{escape_html(fw_name_display)}</span> '
         if not framework_badges:
-            framework_badges = "-"
+            framework_badges = '<span class="no-badge">-</span>'
 
-        # Standard badges
+        # Standard badges - include data-name for filtering
         standard_badges = ""
-        for std in rule["standards"][:2]:
-            std_name = std["name"][:15] + "..." if len(std["name"]) > 15 else std["name"]
-            standard_badges += f'<span class="badge standard" title="{escape_html(std["name"])}">{escape_html(std_name)}</span> '
-        if len(rule["standards"]) > 2:
-            standard_badges += f'<span class="badge standard">+{len(rule["standards"]) - 2}</span>'
+        for std in rule["standards"]:
+            std_name_display = std["name"][:15] + "..." if len(std["name"]) > 15 else std["name"]
+            std_name_normalized = std["name"].lower()
+            standard_badges += f'<span class="badge standard" data-name="{escape_html(std_name_normalized)}" title="{escape_html(std["name"])}">{escape_html(std_name_display)}</span> '
         if not standard_badges:
-            standard_badges = "-"
+            standard_badges = '<span class="no-badge">-</span>'
 
-        # Template badges
+        # Template badges - include data-name for filtering
         template_badges = ""
-        for tpl in rule["templates"][:2]:
-            tpl_name = tpl["name"][:15] + "..." if len(tpl["name"]) > 15 else tpl["name"]
-            template_badges += f'<span class="badge template" title="{escape_html(tpl["name"])}">{escape_html(tpl_name)}</span> '
-        if len(rule["templates"]) > 2:
-            template_badges += f'<span class="badge template">+{len(rule["templates"]) - 2}</span>'
+        for tpl in rule["templates"]:
+            tpl_name_display = tpl["name"][:15] + "..." if len(tpl["name"]) > 15 else tpl["name"]
+            tpl_name_normalized = tpl["name"].lower()
+            template_badges += f'<span class="badge template" data-name="{escape_html(tpl_name_normalized)}" title="{escape_html(tpl["name"])}">{escape_html(tpl_name_display)}</span> '
         if not template_badges:
-            template_badges = "-"
+            template_badges = '<span class="no-badge">-</span>'
 
         # Description
         description = best_meta.get("description", "")
@@ -1157,6 +1160,62 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
                         if (inFramework) filteredFrameworks++;
                         if (inStandard) filteredStandards++;
                         if (inTemplate) filteredTemplates++;
+                    }}
+
+                    // Filter badges within visible rows when URL filters are active
+                    if (hasAnyUrlFilter) {{
+                        // Framework badges - show only the filtered framework or hide all
+                        const frameworkBadges = row.querySelectorAll('.badge.framework');
+                        frameworkBadges.forEach(badge => {{
+                            if (urlFramework) {{
+                                const badgeName = badge.dataset.name || '';
+                                if (badgeName === normalizedUrlFramework) {{
+                                    badge.classList.remove('hidden');
+                                }} else {{
+                                    badge.classList.add('hidden');
+                                }}
+                            }} else {{
+                                // No framework filter - hide all framework badges
+                                badge.classList.add('hidden');
+                            }}
+                        }});
+
+                        // Standard badges - show only the filtered standard or hide all
+                        const standardBadges = row.querySelectorAll('.badge.standard');
+                        standardBadges.forEach(badge => {{
+                            if (urlStandard) {{
+                                const badgeName = badge.dataset.name || '';
+                                if (badgeName === normalizedUrlStandard) {{
+                                    badge.classList.remove('hidden');
+                                }} else {{
+                                    badge.classList.add('hidden');
+                                }}
+                            }} else {{
+                                // No standard filter - hide all standard badges
+                                badge.classList.add('hidden');
+                            }}
+                        }});
+
+                        // Template badges - show only the filtered template or hide all
+                        const templateBadges = row.querySelectorAll('.badge.template');
+                        templateBadges.forEach(badge => {{
+                            if (urlTemplate) {{
+                                const badgeName = badge.dataset.name || '';
+                                if (templatesMatch(badgeName, urlTemplate)) {{
+                                    badge.classList.remove('hidden');
+                                }} else {{
+                                    badge.classList.add('hidden');
+                                }}
+                            }} else {{
+                                // No template filter - hide all template badges
+                                badge.classList.add('hidden');
+                            }}
+                        }});
+                    }} else {{
+                        // No URL filters - show all badges
+                        row.querySelectorAll('.badge.framework, .badge.standard, .badge.template').forEach(badge => {{
+                            badge.classList.remove('hidden');
+                        }});
                     }}
                 }} else {{
                     row.classList.add('hidden');
