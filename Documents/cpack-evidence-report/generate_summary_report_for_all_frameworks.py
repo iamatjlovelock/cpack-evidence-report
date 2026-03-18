@@ -177,6 +177,21 @@ def main():
                 print(f"    ID: {fid}")
                 print(f"    Error: {msg[:200]}")
 
+    # Generate index page
+    if not args.dry_run:
+        print("\n" + "=" * 80)
+        print("GENERATING INDEX PAGE")
+        print("=" * 80)
+        index_result = subprocess.run(
+            [sys.executable, "utility-scripts/generate_index_page.py"],
+            capture_output=True,
+            text=True
+        )
+        if index_result.returncode == 0:
+            print("Index page generated successfully: index.html")
+        else:
+            print(f"Failed to generate index page: {index_result.stderr[:200]}")
+
     return 1 if failed > 0 else 0
 
 
