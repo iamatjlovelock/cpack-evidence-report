@@ -230,6 +230,73 @@ def load_conformance_templates(project_dir: str) -> dict:
     return templates
 
 
+def load_security_standard_mappings(project_dir: str) -> dict:
+    """
+    Load Security Hub control ID to Config rule mappings from security standard files.
+
+    Returns dict mapping security control ID (e.g., 'ACM.1') to Config rule identifier.
+    """
+    standards_dir = os.path.join(project_dir, "security-standard-controls")
+    mappings = {}
+
+    if not os.path.exists(standards_dir):
+        return mappings
+
+    for filename in os.listdir(standards_dir):
+        if not filename.endswith(".json"):
+            continue
+        if filename == "security_hub_standards.json":
+            continue
+
+        filepath = os.path.join(standards_dir, filename)
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            for control in data.get("controls", []):
+                control_id = control.get("control_id", "")
+                config_rule = control.get("config_rule", "")
+
+                if control_id and config_rule:
+                    # Normalize the config rule to get the managed rule identifier
+                    normalized = normalize_rule_identifier(config_rule)
+                    if normalized:
+                        mappings[control_id.upper()] = normalized
+        except Exception as e:
+            pass  # Silently skip files that can't be parsed
+
+    return mappings
+
+
+def extract_security_hub_control_from_description(description: str) -> str:
+    """
+    Extract Security Hub control ID from framework control description URL.
+
+    Framework controls often reference Security Hub controls via URLs like:
+    https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-standards-FSBP-controls.html#FSBP-acm-1
+
+    Returns the control ID (e.g., 'ACM.1') or empty string if not found.
+    """
+    if not description:
+        return ""
+
+    # Pattern: #FSBP-acm-1 or #fsbp-apigateway-1 -> ACM.1, APIGateway.1
+    match = re.search(r'#[Ff][Ss][Bb][Pp]-([a-zA-Z0-9]+)-(\d+)', description)
+    if match:
+        service = match.group(1).upper()
+        number = match.group(2)
+        return f"{service}.{number}"
+
+    # Also try pattern for other standards: #pci-dss-ec2-1 -> EC2.1
+    match = re.search(r'#[a-z-]+-([a-zA-Z0-9]+)-(\d+)$', description)
+    if match:
+        service = match.group(1).upper()
+        number = match.group(2)
+        return f"{service}.{number}"
+
+    return ""
+
+
 def load_framework_reports(project_dir: str) -> dict:
     """Load all framework compliance reports."""
     dashboards_dir = os.path.join(project_dir, "compliance-dashboards")
@@ -237,6 +304,9 @@ def load_framework_reports(project_dir: str) -> dict:
 
     if not os.path.exists(dashboards_dir):
         return frameworks
+
+    # Load Security Hub control to Config rule mappings for indirect resolution
+    security_hub_mappings = load_security_standard_mappings(project_dir)
 
     for dirname in os.listdir(dashboards_dir):
         dir_path = os.path.join(dashboards_dir, dirname)
@@ -264,7 +334,10 @@ def load_framework_reports(project_dir: str) -> dict:
                     for control_set in data.get("controlSets", []):
                         for control in control_set.get("controls", []):
                             control_name = control.get("controlName", "")
-                            for source in control.get("evidenceSources", []):
+                            evidence_sources = control.get("evidenceSources", [])
+
+                            # Process explicit evidence sources
+                            for source in evidence_sources:
                                 source_type = source.get("sourceType", "")
                                 if source_type not in ["AWS_Config", "AWS_Security_Hub"]:
                                     continue
@@ -291,6 +364,26 @@ def load_framework_reports(project_dir: str) -> dict:
                                         "source": f"Framework: {framework_name}"
                                     }
                                 framework_info["rules"][normalized]["controls"].append(control_name)
+
+                            # If no evidence sources, try to resolve via Security Hub control reference
+                            # Framework controls (business requirements) may reference Security Hub
+                            # controls (technical detective controls) which map to Config rules
+                            if not evidence_sources:
+                                description = control.get("controlDescription", "")
+                                sec_hub_control_id = extract_security_hub_control_from_description(description)
+
+                                if sec_hub_control_id and sec_hub_control_id in security_hub_mappings:
+                                    normalized = security_hub_mappings[sec_hub_control_id]
+
+                                    if normalized not in framework_info["rules"]:
+                                        framework_info["rules"][normalized] = {
+                                            "controls": [],
+                                            "source_type": "AWS_Security_Hub_Indirect",
+                                            "security_hub_control": sec_hub_control_id,
+                                            "in_conformance_pack": False,
+                                            "source": f"Framework: {framework_name} (via {sec_hub_control_id})"
+                                        }
+                                    framework_info["rules"][normalized]["controls"].append(control_name)
 
                     frameworks[framework_name] = framework_info
                 except Exception as e:

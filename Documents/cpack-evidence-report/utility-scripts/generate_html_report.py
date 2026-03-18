@@ -33,6 +33,73 @@ def load_json_file(file_path: str) -> dict:
         return json.load(f)
 
 
+def load_security_standard_mappings(project_dir: str) -> dict:
+    """
+    Load Security Hub control ID to Config rule mappings from security standard files.
+
+    Returns dict mapping security control ID (e.g., 'ACM.1') to normalized Config rule identifier.
+    """
+    standards_dir = os.path.join(project_dir, "security-standard-controls")
+    mappings = {}
+
+    if not os.path.exists(standards_dir):
+        return mappings
+
+    for filename in os.listdir(standards_dir):
+        if not filename.endswith(".json"):
+            continue
+        if filename == "security_hub_standards.json":
+            continue
+
+        filepath = os.path.join(standards_dir, filename)
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            for control in data.get("controls", []):
+                control_id = control.get("control_id", "")
+                config_rule = control.get("config_rule", "")
+
+                if control_id and config_rule:
+                    # Normalize the config rule to get the managed rule identifier
+                    normalized = normalize_config_rule_name(config_rule).upper()
+                    if normalized:
+                        mappings[control_id.upper()] = normalized
+        except Exception:
+            pass  # Silently skip files that can't be parsed
+
+    return mappings
+
+
+def extract_security_hub_control_from_description(description: str) -> str:
+    """
+    Extract Security Hub control ID from framework control description URL.
+
+    Framework controls often reference Security Hub controls via URLs like:
+    https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-standards-FSBP-controls.html#FSBP-acm-1
+
+    Returns the control ID (e.g., 'ACM.1') or empty string if not found.
+    """
+    if not description:
+        return ""
+
+    # Pattern: #FSBP-acm-1 or #fsbp-apigateway-1 -> ACM.1, APIGateway.1
+    match = re.search(r'#[Ff][Ss][Bb][Pp]-([a-zA-Z0-9]+)-(\d+)', description)
+    if match:
+        service = match.group(1).upper()
+        number = match.group(2)
+        return f"{service}.{number}"
+
+    # Also try pattern for other standards: #pci-dss-ec2-1 -> EC2.1
+    match = re.search(r'#[a-z-]+-([a-zA-Z0-9]+)-(\d+)$', description)
+    if match:
+        service = match.group(1).upper()
+        number = match.group(2)
+        return f"{service}.{number}"
+
+    return ""
+
+
 def escape_html(text) -> str:
     """Escape HTML special characters."""
     if text is None:
@@ -314,7 +381,8 @@ def calculate_venn_diagram_data(
     compliance_report: dict,
     security_hub_normalized_ids: set,
     template_identifiers: set,
-    has_template: bool = True
+    has_template: bool = True,
+    security_hub_mappings: dict = None
 ) -> dict:
     """
     Calculate the counts for each segment of a 3-way Venn diagram.
@@ -324,6 +392,8 @@ def calculate_venn_diagram_data(
         security_hub_normalized_ids: Set of normalized identifiers from Security Hub standard
         template_identifiers: Set of rule identifiers from conformance pack template
         has_template: Whether a conformance pack template is configured
+        security_hub_mappings: Dict mapping Security Hub control IDs to Config rule identifiers
+                               (for resolving indirect references in framework controls)
 
     Returns:
         Dict with counts for each Venn diagram segment:
@@ -339,6 +409,8 @@ def calculate_venn_diagram_data(
         security_hub_normalized_ids = set()
     if not template_identifiers:
         template_identifiers = set()
+    if not security_hub_mappings:
+        security_hub_mappings = {}
 
     # Normalize template identifiers for comparison
     template_normalized = set(t.upper() for t in template_identifiers)
@@ -352,7 +424,10 @@ def calculate_venn_diagram_data(
 
     for control_set in compliance_report.get("controlSets", []):
         for control in control_set.get("controls", []):
-            for source in control.get("evidenceSources", []):
+            evidence_sources = control.get("evidenceSources", [])
+
+            # Process explicit evidence sources
+            for source in evidence_sources:
                 source_type = source.get("sourceType")
                 keyword = source.get("keywordValue", "")
 
@@ -384,6 +459,22 @@ def calculate_venn_diagram_data(
                         if keyword not in non_normalizable_ids:
                             non_normalizable_ids.add(keyword)
                             non_normalizable_count += 1
+
+            # If no evidence sources, try to resolve via Security Hub control reference
+            # Framework controls (business requirements) may reference Security Hub
+            # controls (technical detective controls) which map to Config rules
+            if not evidence_sources and security_hub_mappings:
+                description = control.get("controlDescription", "")
+                sec_hub_control_id = extract_security_hub_control_from_description(description)
+
+                if sec_hub_control_id and sec_hub_control_id in security_hub_mappings:
+                    normalized_id = security_hub_mappings[sec_hub_control_id]
+                    in_template = normalized_id in template_normalized
+                    in_standard = normalized_id in security_hub_normalized_ids
+                    framework_normalized_ids.add(normalized_id)
+
+                    if normalized_id not in framework_rules:
+                        framework_rules[normalized_id] = (in_template, in_standard)
 
     # Calculate framework segments
     f_only = 0      # Framework only
@@ -1293,7 +1384,8 @@ def generate_summary_page(
     template_standard_intersection: dict = None,
     security_hub_normalized_ids: set = None,
     template_identifiers: set = None,
-    control_catalog_ids: set = None
+    control_catalog_ids: set = None,
+    security_hub_mappings: dict = None
 ) -> str:
     """Generate the summary report HTML page.
 
@@ -1542,7 +1634,8 @@ def generate_summary_page(
             compliance_report,
             security_hub_normalized_ids,
             template_identifiers,
-            has_template_data
+            has_template_data,
+            security_hub_mappings
         )
         venn_svg = generate_venn_diagram_svg(venn_data, manifest_base_url)
 
@@ -2395,6 +2488,11 @@ def main():
         if control_catalog_ids:
             print(f"  Control Catalog: {len(control_catalog_ids)} detective controls")
 
+        # Load Security Hub control mappings for resolving indirect references
+        security_hub_mappings = load_security_standard_mappings(project_dir)
+        if security_hub_mappings:
+            print(f"  Security Hub control mappings: {len(security_hub_mappings)} controls")
+
         # Calculate Template ∩ Standard intersection and extract template identifiers
         template_standard_intersection = None
         template_identifiers = None
@@ -2425,7 +2523,7 @@ def main():
             extra_rules_report_link, matching_templates, template_mode,
             security_standard, conformance_template, template_total_rules, security_hub_data,
             template_standard_intersection, security_hub_normalized_ids, template_identifiers,
-            control_catalog_ids
+            control_catalog_ids, security_hub_mappings
         )
         summary_file = f"{output_prefix}_summary.html"
         with open(summary_file, "w", encoding="utf-8") as f:
