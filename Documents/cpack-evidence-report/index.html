@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Frameworks Index</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f7fafc;
+            color: #2d3748;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #1a202c;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #718096;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px 25px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2b6cb0;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #718096;
+            text-transform: uppercase;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        th {
+            background: #2d3748;
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+        }
+        tr:hover {
+            background: #f7fafc;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        a {
+            color: #2b6cb0;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .no-report {
+            color: #a0aec0;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .badge-template {
+            background: #c6f6d5;
+            color: #276749;
+        }
+        .badge-standard {
+            background: #e9d8fd;
+            color: #553c9a;
+        }
+        .badge-none {
+            background: #edf2f7;
+            color: #a0aec0;
+        }
+        .search-box {
+            width: 100%;
+            max-width: 400px;
+            padding: 10px 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .search-box:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+        }
+        .links {
+            margin-bottom: 20px;
+        }
+        .links a {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #2b6cb0;
+            color: white;
+            border-radius: 6px;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        .links a:hover {
+            background: #2c5282;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Compliance Frameworks Index</h1>
+        <p class="subtitle">Generated: 2026-03-18 01:02:53 UTC</p>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value">32</div>
+                <div class="stat-label">Total Frameworks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">25</div>
+                <div class="stat-label">With Reports</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">19</div>
+                <div class="stat-label">With Templates</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">5</div>
+                <div class="stat-label">With Standards</div>
+            </div>
+        </div>
+
+        <div class="links">
+            <a href="rule-manifest/rule_manifest.html">Rules Manifest</a>
+        </div>
+
+        <input type="text" class="search-box" id="searchBox" placeholder="Search frameworks..." onkeyup="filterTable()">
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40%">Framework</th>
+                    <th style="width: 30%">Conformance Pack Template</th>
+                    <th style="width: 30%">Security Standard</th>
+                </tr>
+            </thead>
+            <tbody id="frameworksTable">
+                <tr data-search="amazon web services (aws) audit manager sample framework  ">
+                    <td><a href="compliance-dashboards/Amazon_Web_Services__AWS__Audit_Manager_Sample_Fra/template_report_Amazon_Web_Services__AWS__Audit_Manager_Sample_Fra_summary.html">Amazon Web Services (AWS) Audit Manager Sample Framework</a></td>
+                    <td><span class="badge badge-none">None</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="amazon web services (aws) well architected framework (waf) v10 operational best practices for aws well-architected framework reliability pillar ">
+                    <td><a href="compliance-dashboards/Amazon_Web_Services__AWS__Well_Architected_Framewo/template_report_Amazon_Web_Services__AWS__Well_Architected_Framewo_summary.html">Amazon Web Services (AWS) Well Architected Framework (WAF) v10</a></td>
+                    <td><span class="badge badge-template">Operational Best Practices for AWS Well-Architected Framework Reliability Pillar</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="australian cyber security center (acsc) essential eight operational best practices for acsc essential 8 ">
+                    <td><a href="compliance-dashboards/Australian_Cyber_Security_Center__ACSC__Essential/template_report_Australian_Cyber_Security_Center__ACSC__Essential_summary.html">Australian Cyber Security Center (ACSC) Essential Eight</a></td>
+                    <td><span class="badge badge-template">Operational Best Practices for ACSC Essential 8</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="australian cyber security center (acsc) information security manual (ism) 02 march 2023 operational best practices for acsc ism - part 1 ">
+                    <td><a href="compliance-dashboards/Australian_Cyber_Security_Center__ACSC__Informatio/template_report_Australian_Cyber_Security_Center__ACSC__Informatio_summary.html">Australian Cyber Security Center (ACSC) Information Security Manual (ISM) 02 March 2023</a></td>
+                    <td><span class="badge badge-template">Operational Best Practices for ACSC ISM - Part 1</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="aws control tower guardrails aws control tower detective guardrails conformance pack ">
+                    <td><a href="compliance-dashboards/AWS_Control_Tower_Guardrails/template_report_AWS_Control_Tower_Guardrails_summary.html">AWS Control Tower Guardrails</a></td>
+                    <td><span class="badge badge-template">AWS Control Tower Detective Guardrails Conformance Pack</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="aws foundational security best practices  aws-foundational-security-best-practices-v100">
+                    <td><a href="compliance-dashboards/AWS_Foundational_Security_Best_Practices/template_report_AWS_Foundational_Security_Best_Practices_summary.html">AWS Foundational Security Best Practices</a></td>
+                    <td><span class="badge badge-none">None</span></td>
+                    <td><span class="badge badge-standard">Aws Foundational Security Best Practices V100</span></td>
+                </tr>
+                <tr data-search="aws generative ai best practices framework v2 operational best practices for ai and ml ">
+                    <td><a href="compliance-dashboards/AWS_Generative_AI_Best_Practices_Framework_v2/template_report_AWS_Generative_AI_Best_Practices_Framework_v2_summary.html">AWS Generative AI Best Practices Framework v2</a></td>
+                    <td><span class="badge badge-template">Operational Best Practices for AI and ML</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="aws license manager  ">
+                    <td><a href="compliance-dashboards/AWS_License_Manager/template_report_AWS_License_Manager_summary.html">AWS License Manager</a></td>
+                    <td><span class="badge badge-none">None</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="aws operational best practices  ">
+                    <td><a href="compliance-dashboards/AWS_Operational_Best_Practices/template_report_AWS_Operational_Best_Practices_summary.html">AWS Operational Best Practices</a></td>
+                    <td><span class="badge badge-none">None</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="canadian centre for cyber security (cccs) medium cloud control operational best practices for canadian centre for cyber security (cccs) medium cloud control profile ">
+                    <td><a href="compliance-dashboards/Canadian_Centre_for_Cyber_Security__CCCS__Medium_C/template_report_Canadian_Centre_for_Cyber_Security__CCCS__Medium_C_summary.html">Canadian Centre for Cyber Security (CCCS) Medium Cloud Control</a></td>
+                    <td><span class="badge badge-template">Operational Best Practices for Canadian Centre for Cyber Security (CCCS) Medium Cloud Control Profile</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="center for internet security (cis) amazon web services (aws) benchmark v1.2.0, level 1  cis-aws-foundations-benchmark-v120">
+                    <td><a href="compliance-dashboards/Center_for_Internet_Security__CIS__Amazon_Web_Serv/template_report_Center_for_Internet_Security__CIS__Amazon_Web_Serv_summary.html">Center for Internet Security (CIS) Amazon Web Services (AWS) Benchmark v1.2.0, Level 1</a></td>
+                    <td><span class="badge badge-none">None</span></td>
+                    <td><span class="badge badge-standard">Cis Aws Foundations Benchmark V120</span></td>
+                </tr>
+                <tr data-search="center for internet security (cis) amazon web services (aws) benchmark v1.2.0, level 1 and 2  cis-aws-foundations-benchmark-v120">
+                    <td><span class="no-report">Center for Internet Security (CIS) Amazon Web Services (AWS) Benchmark v1.2.0, Level 1 and 2</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                    <td><span class="badge badge-standard">Cis Aws Foundations Benchmark V120</span></td>
+                </tr>
+                <tr data-search="center for internet security (cis) amazon web services (aws) benchmark v1.3.0, level 1  ">
+                    <td><span class="no-report">Center for Internet Security (CIS) Amazon Web Services (AWS) Benchmark v1.3.0, Level 1</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="center for internet security (cis) amazon web services (aws) benchmark v1.3.0, level 1 and 2  ">
+                    <td><span class="no-report">Center for Internet Security (CIS) Amazon Web Services (AWS) Benchmark v1.3.0, Level 1 and 2</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="center for internet security (cis) amazon web services (aws) benchmark v1.4.0, level 1  ">
+                    <td><span class="no-report">Center for Internet Security (CIS) Amazon Web Services (AWS) Benchmark v1.4.0, Level 1</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="center for internet security (cis) amazon web services (aws) benchmark v1.4.0, level 1 and 2 operational best practices for cis aws foundations benchmark v1.4 level 2 ">
+                    <td><span class="no-report">Center for Internet Security (CIS) Amazon Web Services (AWS) Benchmark v1.4.0, Level 1 and 2</span></td>
+                    <td><span class="badge badge-template">Operational Best Practices for CIS AWS Foundations Benchmark v1.4 Level 2</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="center for internet security (cis) v7.1, ig1  ">
+                    <td><a href="compliance-dashboards/Center_for_Internet_Security__CIS__v7.1__IG1/template_report_Center_for_Internet_Security__CIS__v7.1__IG1_summary.html">Center for Internet Security (CIS) v7.1, IG1</a></td>
+                    <td><span class="badge badge-none">None</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="cis critical security controls version 8.0 (cis v8.0), ig1 operational best practices for cis critical security controls v8 ig1 ">
+                    <td><a href="compliance-dashboards/CIS_Critical_Security_Controls_version_8.0__CIS_v8/template_report_CIS_Critical_Security_Controls_version_8.0__CIS_v8_summary.html">CIS Critical Security Controls version 8.0 (CIS v8.0), IG1</a></td>
+                    <td><span class="badge badge-template">Operational Best Practices for CIS Critical Security Controls v8 IG1</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="eudralex - the rules governing medicinal products in the european union (eu) - volume 4: good manufacturing practice (gmp) medicinal products for human and veterinary use - annex 11 operational best practices for gxp eu annex 11 ">
+                    <td><a href="compliance-dashboards/EudraLex_-_The_Rules_Governing_Medicinal_Products/template_report_EudraLex_-_The_Rules_Governing_Medicinal_Products_summary.html">EudraLex - The Rules Governing Medicinal Products in the European Union (EU) - Volume 4: Good Manufacturing Practice (GMP) Medicinal Products for Human and Veterinary Use - Annex 11</a></td>
+                    <td><span class="badge badge-template">Operational Best Practices for GxP EU Annex 11</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="federal risk and authorization management program (fedramp) security baseline controls r4, moderate operational best practices for fedramp(moderate) ">
+                    <td><a href="compliance-dashboards/Federal_Risk_And_Authorization_Management_Program/template_report_Federal_Risk_And_Authorization_Management_Program_summary.html">Federal Risk And Authorization Management Program (FedRAMP) Security Baseline Controls r4, Moderate</a></td>
+                    <td><span class="badge badge-template">Operational Best Practices for FedRAMP(Moderate)</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="general data protection regulation (gdpr) 2016  ">
+                    <td><a href="compliance-dashboards/General_Data_Protection_Regulation__GDPR__2016/template_report_General_Data_Protection_Regulation__GDPR__2016_summary.html">General Data Protection Regulation (GDPR) 2016</a></td>
+                    <td><span class="badge badge-none">None</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="gramm-leach-bliley act (glba) operational best practices for gramm leach bliley act (glba) ">
+                    <td><a href="compliance-dashboards/Gramm-Leach-Bliley_Act__GLBA_/template_report_Gramm-Leach-Bliley_Act__GLBA__summary.html">Gramm-Leach-Bliley Act (GLBA)</a></td>
+                    <td><span class="badge badge-template">Operational Best Practices for Gramm Leach Bliley Act (GLBA)</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="health insurance portability and accountability act (hipaa) omnibus final rule operational best practices for hipaa security ">
+                    <td><a href="compliance-dashboards/Health_Insurance_Portability_and_Accountability_Ac/compliance_report_hipaa-best-practice_summary.html">Health Insurance Portability and Accountability Act (HIPAA) Omnibus Final Rule</a></td>
+                    <td><span class="badge badge-template">Operational Best Practices for HIPAA Security</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="health insurance portability and accountability act (hipaa) security rule: feb 2003 operational best practices for hipaa security ">
+                    <td><span class="no-report">Health Insurance Portability and Accountability Act (HIPAA) Security Rule: Feb 2003</span></td>
+                    <td><span class="badge badge-template">Operational Best Practices for HIPAA Security</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="international organization for standardization (iso)/international electrotechnical commission (iec) 27001:2013 annex a  ">
+                    <td><a href="compliance-dashboards/International_Organization_for_standardization__IS/template_report_International_Organization_for_standardization__IS_summary.html">International Organization for standardization (ISO)/International Electrotechnical Commission (IEC) 27001:2013 Annex A</a></td>
+                    <td><span class="badge badge-none">None</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="nist 800-171 revision 2: protecting controlled unclassified information in nonfederal systems and organizations operational best practices for nist 800 171 ">
+                    <td><a href="compliance-dashboards/NIST_800-171_Revision_2__Protecting_Controlled_Unc/template_report_NIST_800-171_Revision_2__Protecting_Controlled_Unc_summary.html">NIST 800-171 Revision 2: Protecting Controlled Unclassified Information in Nonfederal Systems and Organizations</a></td>
+                    <td><span class="badge badge-template">Operational Best Practices for NIST 800 171</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="nist 800-53 rev 5: security and privacy controls for information systems and organizations operational best practices for nist 800-53 rev 5 nist-special-publication-800-53-revision-5">
+                    <td><a href="compliance-dashboards/NIST_800-53_Rev_5__Security_and_Privacy_Controls_f/template_report_NIST_800-53_Rev_5__Security_and_Privacy_Controls_f_summary.html">NIST 800-53 Rev 5: Security and Privacy Controls for Information Systems and Organizations</a></td>
+                    <td><span class="badge badge-template">Operational Best Practices for NIST 800-53 rev 5</span></td>
+                    <td><span class="badge badge-standard">Nist Special Publication 800 53 Revision 5</span></td>
+                </tr>
+                <tr data-search="nist cybersecurity framework (csf) v1.1 operational best practices for nist csf ">
+                    <td><a href="compliance-dashboards/NIST_Cybersecurity_Framework__CSF__v1.1/template_report_NIST_Cybersecurity_Framework__CSF__v1.1_summary.html">NIST Cybersecurity Framework (CSF) v1.1</a></td>
+                    <td><span class="badge badge-template">Operational Best Practices for NIST CSF</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="payment card industry data security standard (pci dss) v3.2.1 operational best practices for pci dss 3.2.1 ">
+                    <td><span class="no-report">Payment Card Industry Data Security Standard (PCI DSS) v3.2.1</span></td>
+                    <td><span class="badge badge-template">Operational Best Practices for PCI DSS 3.2.1</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="payment card industry data security standard (pci dss) v4.0 operational best practices for pci dss 4.0 (including global resource types) pci-dss-v401">
+                    <td><a href="compliance-dashboards/Payment_Card_Industry_Data_Security_Standard__PCI/template_report_Payment_Card_Industry_Data_Security_Standard__PCI_summary.html">Payment Card Industry Data Security Standard (PCI DSS) v4.0</a></td>
+                    <td><span class="badge badge-template">Operational Best Practices for PCI DSS 4.0 (Including global resource types)</span></td>
+                    <td><span class="badge badge-standard">Pci Dss V401</span></td>
+                </tr>
+                <tr data-search="statement on standards for attestations engagement (ssae) no. 18, service organizations controls (soc) report 2  ">
+                    <td><a href="compliance-dashboards/Statement_on_Standards_for_Attestations_Engagement/template_report_Statement_on_Standards_for_Attestations_Engagement_summary.html">Statement on Standards for Attestations Engagement (SSAE) No. 18, Service Organizations Controls (SOC) Report 2</a></td>
+                    <td><span class="badge badge-none">None</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+                <tr data-search="title 21 code of federal regulations (cfr) part 11, electronic records; electronic signatures - scope and application 24 may 2023 operational best practices for fda title 21 cfr part 11 ">
+                    <td><a href="compliance-dashboards/Title_21_Code_of_Federal_Regulations__CFR__Part_11/template_report_Title_21_Code_of_Federal_Regulations__CFR__Part_11_summary.html">Title 21 Code of Federal Regulations (CFR) Part 11, Electronic records; Electronic Signatures - Scope and Application 24 May 2023</a></td>
+                    <td><span class="badge badge-template">Operational Best Practices for FDA Title 21 CFR Part 11</span></td>
+                    <td><span class="badge badge-none">None</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function filterTable() {
+            const searchText = document.getElementById('searchBox').value.toLowerCase();
+            const rows = document.querySelectorAll('#frameworksTable tr');
+
+            rows.forEach(row => {
+                const searchData = row.dataset.search || '';
+                if (searchText && !searchData.includes(searchText)) {
+                    row.style.display = 'none';
+                } else {
+                    row.style.display = '';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
