@@ -1113,9 +1113,13 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
                 // When URL filters are active, compute segment based on URL-filtered sources
                 if (anyVennFilter) {{
                     // Determine effective membership based on URL filters
-                    const effectiveF = urlFramework ? matchesUrlFramework : inFramework;
-                    const effectiveT = urlTemplate ? matchesUrlTemplate : inTemplate;
-                    const effectiveS = urlStandard ? matchesUrlStandard : inStandard;
+                    // When ANY URL filter is active, non-filtered sources are treated as "not in scope"
+                    // (i.e., false), not as global membership. This ensures Venn segments are
+                    // computed relative to the filtered sources only.
+                    const hasAnyUrlFilter = urlFramework || urlStandard || urlTemplate;
+                    const effectiveF = hasAnyUrlFilter ? matchesUrlFramework : inFramework;
+                    const effectiveT = hasAnyUrlFilter ? matchesUrlTemplate : inTemplate;
+                    const effectiveS = hasAnyUrlFilter ? matchesUrlStandard : inStandard;
 
                     // Compute the effective venn segment
                     let effectiveVenn = '';
