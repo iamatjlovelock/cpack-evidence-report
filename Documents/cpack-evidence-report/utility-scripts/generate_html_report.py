@@ -1237,29 +1237,35 @@ def generate_page_header(framework_name: str, conformance_pack: str, generated_a
     if show_mappings:
         template_display = escape_html(conformance_template) if conformance_template else "None"
         security_display = escape_html(security_standard) if security_standard else "None"
-        # Show 'None' if conformance pack is 'none', empty, or in template mode (starts with 'Template:' or 'No Template')
-        if not conformance_pack or conformance_pack.lower() == "none" or conformance_pack.startswith("Template:") or conformance_pack == "No Template Available":
-            pack_display = "None"
-        else:
-            pack_display = escape_html(conformance_pack)
+
+        # Build meta fields list
+        meta_fields = [f"<div>Conformance Pack Template: {template_display}</div>"]
+
+        if security_standard:
+            meta_fields.append(f"<div>Security Standard: {security_display}</div>")
+
+        # Only show deployed pack if one is actually deployed (not 'none' or template mode)
+        if conformance_pack and conformance_pack.lower() != "none" and not conformance_pack.startswith("Template:") and conformance_pack != "No Template Available":
+            meta_fields.append(f"<div>Deployed Conformance Pack: {escape_html(conformance_pack)}</div>")
+
+        meta_fields.append(f"<div>Generated: {escape_html(generated_at)}</div>")
 
         return f"""
     <div class="report-header">
         <h1>{escape_html(framework_name)}</h1>
         <div class="meta">
-            <div>Conformance Pack Template: {template_display}</div>
-            <div>Security Standard: {security_display}</div>
-            <div>Deployed Conformance Pack: {pack_display}</div>
-            <div>Generated: {escape_html(generated_at)}</div>
+            {"".join(meta_fields)}
         </div>
     </div>
     """
     else:
+        # For non-summary pages, show template name if available, otherwise deployed pack
+        pack_display = conformance_template if conformance_template else conformance_pack
         return f"""
     <div class="report-header">
         <h1>{escape_html(framework_name)}</h1>
         <div class="meta">
-            <div>Conformance Pack: {escape_html(conformance_pack)}</div>
+            <div>Conformance Pack Template: {escape_html(pack_display)}</div>
             <div>Generated: {escape_html(generated_at)}</div>
         </div>
     </div>
