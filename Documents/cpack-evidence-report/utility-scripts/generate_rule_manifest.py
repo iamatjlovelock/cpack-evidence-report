@@ -1078,9 +1078,10 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
                 const matchesUrlFramework = normalizedUrlFramework && frameworkList.some(f => f === normalizedUrlFramework);
                 const matchesUrlStandard = normalizedUrlStandard && standardList.some(s => s === normalizedUrlStandard);
                 const matchesUrlTemplate = urlTemplate && templateList.some(t => templatesMatch(t, urlTemplate));
+                const hasAnyUrlFilter = urlFramework || urlStandard || urlTemplate;
 
                 // URL parameter filters (OR logic - show if in ANY of the specified sources)
-                if (urlFramework || urlStandard || urlTemplate) {{
+                if (hasAnyUrlFilter) {{
                     if (!matchesUrlFramework && !matchesUrlStandard && !matchesUrlTemplate) show = false;
                 }}
 
@@ -1116,7 +1117,6 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
                     // When ANY URL filter is active, non-filtered sources are treated as "not in scope"
                     // (i.e., false), not as global membership. This ensures Venn segments are
                     // computed relative to the filtered sources only.
-                    const hasAnyUrlFilter = urlFramework || urlStandard || urlTemplate;
                     const effectiveF = hasAnyUrlFilter ? matchesUrlFramework : inFramework;
                     const effectiveT = hasAnyUrlFilter ? matchesUrlTemplate : inTemplate;
                     const effectiveS = hasAnyUrlFilter ? matchesUrlStandard : inStandard;
@@ -1146,21 +1146,17 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
                     row.classList.remove('hidden');
                     visibleCount++;
                     if (inCatalog) filteredCatalog++;
-                    // When URL filters active, count matches to specific sources; otherwise count any
-                    if (urlFramework) {{
+                    // When ANY URL filter is active, count only matches to URL-filtered sources
+                    // Non-filtered sources show 0 (not in scope), not global counts
+                    if (hasAnyUrlFilter) {{
                         if (matchesUrlFramework) filteredFrameworks++;
-                    }} else if (inFramework) {{
-                        filteredFrameworks++;
-                    }}
-                    if (urlStandard) {{
                         if (matchesUrlStandard) filteredStandards++;
-                    }} else if (inStandard) {{
-                        filteredStandards++;
-                    }}
-                    if (urlTemplate) {{
                         if (matchesUrlTemplate) filteredTemplates++;
-                    }} else if (inTemplate) {{
-                        filteredTemplates++;
+                    }} else {{
+                        // No URL filters - use global membership
+                        if (inFramework) filteredFrameworks++;
+                        if (inStandard) filteredStandards++;
+                        if (inTemplate) filteredTemplates++;
                     }}
                 }} else {{
                     row.classList.add('hidden');
