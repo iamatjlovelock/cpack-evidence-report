@@ -1817,11 +1817,14 @@ def generate_summary_page(
                 is_in_catalog = control_catalog_ids and keyword_value.upper() in control_catalog_ids
                 in_catalog_badge = '<span class="badge compliant">Yes</span>' if is_in_catalog else '<span class="badge warning">No</span>'
 
+                # Link to Rules Manifest using the rule identifier as anchor
+                manifest_link = f"../../rule-manifest/rule_manifest.html#{keyword_value.upper()}"
+
                 if template_mode:
                     html_parts.append(f"""
                     <tr>
                         <td>{ctrl_cell}</td>
-                        <td><a href="{prefix}_evidence.html#{rule_anchor}">{source_name}</a></td>
+                        <td><a href="{manifest_link}">{source_name}</a></td>
                         <td style="text-align: center;">{in_standard_badge}</td>
                         <td style="text-align: center;">{in_template_badge}</td>
                         <td style="text-align: center;">{in_catalog_badge}</td>
@@ -1843,7 +1846,7 @@ def generate_summary_page(
                     html_parts.append(f"""
                     <tr>
                         <td>{ctrl_cell}</td>
-                        <td><a href="{prefix}_evidence.html#{rule_anchor}">{source_name}</a></td>
+                        <td><a href="{manifest_link}">{source_name}</a></td>
                         <td style="text-align: center;">{in_standard_badge}</td>
                         <td style="text-align: center;">{in_catalog_badge}</td>
                         <td style="text-align: center;" class="count-compliant">{compliant_count}</td>
@@ -1873,17 +1876,16 @@ def generate_summary_page(
                 is_in_catalog = control_catalog_ids and keyword.upper() in control_catalog_ids
                 in_catalog_badge = '<span class="badge compliant">Yes</span>' if is_in_catalog else '<span class="badge warning">No</span>'
 
-                # Link to gap report if available, or to control catalog if no template available
+                # Link to Rules Manifest
+                manifest_link = f"../../rule-manifest/rule_manifest.html#{keyword.upper()}"
+                source_display = f'<a href="{manifest_link}">{source_name}</a>'
+
+                # Determine status badge based on template availability
                 if gap_report_link and not no_template_available:
-                    source_display = f'<a href="{gap_report_link}#{keyword_anchor}">{source_name}</a>'
                     status_badge = f'<a href="{gap_report_link}#{keyword_anchor}"><span class="badge missing">Gap</span></a>'
                 elif no_template_available:
-                    # Link to Control Catalog when no template available
-                    control_catalog_link = f"{prefix}_control_catalog.html"
-                    source_display = f'<a href="{control_catalog_link}#{keyword_anchor}">{source_name}</a>'
                     status_badge = '<span class="badge not-applicable">N/A</span>'
                 else:
-                    source_display = source_name
                     status_badge = '<span class="badge missing">Gap</span>'
 
                 if template_mode:

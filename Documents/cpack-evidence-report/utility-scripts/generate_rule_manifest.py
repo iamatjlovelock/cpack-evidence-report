@@ -971,7 +971,7 @@ def generate_html_report(manifest: dict, output_file: str, frameworks: dict, sta
         doc_url = f"https://docs.aws.amazon.com/config/latest/developerguide/{doc_url_name}.html"
 
         html_content += f"""
-            <tr data-catalog="{str(in_catalog).lower()}" data-framework="{str(in_f).lower()}" data-standard="{str(in_s).lower()}" data-template="{str(in_t).lower()}" data-venn="{venn_segment}" data-search="{escape_html(rule_id.lower())} {escape_html(description.lower())}" data-frameworks="{escape_html(framework_names)}" data-standards="{escape_html(standard_names)}" data-templates="{escape_html(template_names)}">
+            <tr id="{escape_html(rule_id)}" data-catalog="{str(in_catalog).lower()}" data-framework="{str(in_f).lower()}" data-standard="{str(in_s).lower()}" data-template="{str(in_t).lower()}" data-venn="{venn_segment}" data-search="{escape_html(rule_id.lower())} {escape_html(description.lower())}" data-frameworks="{escape_html(framework_names)}" data-standards="{escape_html(standard_names)}" data-templates="{escape_html(template_names)}">
                 <td><a href="{doc_url}" target="_blank" class="rule-id">{escape_html(rule_id)}</a></td>
                 <td style="text-align: center;">{catalog_badge}</td>
                 <td>
